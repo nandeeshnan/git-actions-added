@@ -1,28 +1,37 @@
-name: Deploy to AWS EKS
+name: Deploy to AWS EKS using Terraform
 
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
+      - main  # Change if needed
+  pull_request:
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Install Terraform
-      - name: Install Terraform
+      - name: Cache Terraform Binary
+        id: cache-terraform
+        uses: actions/cache@v3
+        with:
+          path: /usr/local/bin/terraform
+          key: terraform-1.5.5
+
+      - name: Install Terraform (if not cached)
+        if: steps.cache-terraform.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update && sudo apt-get install -y unzip
           curl -fsSL https://releases.hashicorp.com/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip -o terraform.zip
           unzip terraform.zip
           sudo mv terraform /usr/local/bin/
-          terraform --version  # Verify Terraform installation
+          terraform --version  # Verify installation
 
-      # Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -30,51 +39,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Check if the EKS Cluster exists
       - name: Check if EKS Cluster Exists
-        id: check-cluster
+        id: check_cluster
         run: |
           if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
-            echo "Cluster exists"
             echo "CLUSTER_EXISTS=true" >> $GITHUB_ENV
           else
-            echo "Cluster does not exist"
             echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      # Deploy EKS Cluster using Terraform (only if the cluster does not exist)
-      - name: Deploy EKS Cluster with Terraform
+      - name: Deploy Infrastructure with Terraform
         if: env.CLUSTER_EXISTS == 'false'
         run: |
           cd terraform
           terraform init
           terraform apply -auto-approve
 
-      # Update kubeconfig to interact with EKS
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name my-eks-cluster --region us-east-1
-
-      # Login to Docker Hub
-      - name: Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
-
-      # Build and Push Backend Docker Image
-      - name: Build and Push Backend Image
+      - name: Update Kubeconfig
         run: |
-          docker build -t backend_recipe2:latest -f backend/Dockerfile backend/
-          docker tag backend_recipe2:latest ${{ secrets.DOCKER_HUB_USERNAME }}/backend_recipe2:latest
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend_recipee2:latest
+          aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+          kubectl get nodes
 
-      # Build and Push Frontend Docker Image
-      - name: Build and Push Frontend Image
-        run: |
-          docker build -t frontend_recipe2:latest -f frontend/Dockerfile frontend/
-          docker tag frontend_recipe2:latest ${{ secrets.DOCKER_HUB_USERNAME }}/frontend_recipe2:latest
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/frontend_recipe2:latest
-
-      # Deploy Kubernetes manifests
-      - name: Deploy Kubernetes Manifests
+      - name: Deploy Application to EKS
         run: |
           kubectl apply -f dep-ser/backe.yml
           kubectl apply -f dep-ser/fb-dep.yml
+          kubectl rollout status deployment frontend
+          kubectl rollout status deployment backend
 
+          
+      - name: Verify Deployment
+        run: |
+          kubectl get all
