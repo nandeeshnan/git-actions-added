@@ -19,7 +19,7 @@ spec:
             - containerPort: 8000  
           env:
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://nandeesh:nandeesh123@recipe.chre8zseg00a.eu-north-1.rds.amazonaws.com:5432/recipefind"
+              value: "postgresql+asyncpg://nandeesh:nandeesh123@database-1.cxm2omoga4r6.us-east-1.rds.amazonaws.com:5432/recipefind"
 ---
 apiVersion: v1
 kind: Service
