@@ -302,8 +302,8 @@ resource "aws_eks_cluster" "eks_cluster" {
 ###############################
 
 resource "aws_eks_node_group" "eks_node_group" {
-  count        = length(data.aws_eks_cluster.eks_cluster) == 0 || length(data.aws_eks_node_group.eks_node_group) == 0 ? 1 : 0
-  cluster_name = aws_eks_cluster.eks_cluster.name
+  count        = length(data.aws_eks_cluster.eks_cluster) == 0 ? 1 : 0
+  cluster_name = aws_eks_cluster.eks_cluster[0].name
   node_group_name = "my-node-group"
   node_role_arn = data.aws_iam_role.eks_node_role.arn
   subnet_ids    = [data.aws_subnet.eks_subnet_a.id, data.aws_subnet.eks_subnet_b.id]
@@ -328,21 +328,21 @@ resource "aws_eks_node_group" "eks_node_group" {
 ###############################
 
 output "cluster_name" {
-  value = aws_eks_cluster.eks_cluster.name
+  value = aws_eks_cluster.eks_cluster[0].name
 }
 
 output "cluster_endpoint" {
-  value = aws_eks_cluster.eks_cluster.endpoint
+  value = aws_eks_cluster.eks_cluster[0].endpoint
 }
 
 output "cluster_arn" {
-  value = aws_eks_cluster.eks_cluster.arn
+  value = aws_eks_cluster.eks_cluster[0].arn
 }
 
 output "recipe_db_secret_arn" {
-  value = aws_secretsmanager_secret.recipe_db_secret.arn
+  value = aws_secretsmanager_secret.recipe_db_secret[0].arn
 }
 
 output "recipe_db_secret_value" {
-  value = aws_secretsmanager_secret.recipe_db_secret.secret_string
+  value = aws_secretsmanager_secret.recipe_db_secret[0].secret_string
 }
