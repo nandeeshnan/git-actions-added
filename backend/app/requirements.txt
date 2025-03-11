@@ -7,4 +7,4 @@ asyncpg
 passlib[bcrypt]
 python-jose
 python-dotenv
-psycopg2-binary
+
