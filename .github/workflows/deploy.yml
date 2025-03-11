@@ -18,7 +18,23 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # Change if needed 3
+          aws-region: us-east-1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push backend Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/backend_recipe2:latest ./backend
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/backend_recipe2:latest
+
+      - name: Build and push frontend Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/frontend_recipe2:latest ./frontend
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/frontend_recipe2:latest
 
       - name: Check if EKS cluster exists
         id: check-cluster
