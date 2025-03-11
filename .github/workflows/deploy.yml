@@ -1,12 +1,9 @@
-name: Deploy to AWS EKS using Terraform
+name: Deploy to AWS EKS
 
 on:
   push:
     branches:
-      - main  # Change if needed
-  pull_request:
-    branches:
-      - main
+      - main  # Runs when code is pushed to main branch
 
 jobs:
   deploy:
@@ -18,7 +15,7 @@ jobs:
 
       - name: Cache Terraform Binary
         id: cache-terraform
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /usr/local/bin/terraform
           key: terraform-1.5.5
@@ -26,11 +23,11 @@ jobs:
       - name: Install Terraform (if not cached)
         if: steps.cache-terraform.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update && sudo apt-get install -y unzip
-          curl -fsSL https://releases.hashicorp.com/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip -o terraform.zip
-          unzip terraform.zip
-          sudo mv terraform /usr/local/bin/
-          terraform --version  # Verify installation
+          sudo apt-get update && sudo apt-get install -y unzip curl
+          curl -fsSL -o terraform.zip https://releases.hashicorp.com/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip
+          unzip -o terraform.zip -d /usr/local/bin/
+          chmod +x /usr/local/bin/terraform
+          terraform --version
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -40,7 +37,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Check if EKS Cluster Exists
-        id: check_cluster
+        id: check-cluster
         run: |
           if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
             echo "CLUSTER_EXISTS=true" >> $GITHUB_ENV
@@ -48,26 +45,24 @@ jobs:
             echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      - name: Deploy Infrastructure with Terraform
+      - name: Initialize and Apply Terraform (Only if Cluster is Absent)
         if: env.CLUSTER_EXISTS == 'false'
         run: |
           cd terraform
           terraform init
           terraform apply -auto-approve
 
-      - name: Update Kubeconfig
+      - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
-          kubectl get nodes
+          kubectl version --client
 
       - name: Deploy Application to EKS
         run: |
           kubectl apply -f dep-ser/backe.yml
           kubectl apply -f dep-ser/fb-dep.yml
-          kubectl rollout status deployment frontend
-          kubectl rollout status deployment backend
 
-          
       - name: Verify Deployment
         run: |
-          kubectl get all
+          kubectl get pods -o wide
+          kubectl get svc
