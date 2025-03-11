@@ -294,16 +294,8 @@ resource "aws_route_table_association" "eks_rt_assoc_b" {
 # IAM Roles & Policies        #
 ###############################
 
-# Check if IAM Role exists for EKS Cluster
-data "aws_iam_role" "eks_cluster_role" {
-  count = length(aws_iam_role.eks_cluster_role.*.id) > 0 ? 0 : 1
-  name = "eks-cluster-role"
-}
-
-# Create IAM Role for EKS Cluster only if it doesn't exist
+# Create IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
-  count = length(data.aws_iam_role.eks_cluster_role) > 0 ? 0 : 1
-
   name = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
@@ -323,20 +315,12 @@ resource "aws_iam_role" "eks_cluster_role" {
 
 # Attach IAM Policies to Cluster Role
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
-  role       = coalesce(data.aws_iam_role.eks_cluster_role[0].name, aws_iam_role.eks_cluster_role[0].name)
+  role       = aws_iam_role.eks_cluster_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# Check if IAM Role exists for EKS Node Group
-data "aws_iam_role" "eks_node_role" {
-  count = length(aws_iam_role.eks_node_role.*.id) > 0 ? 0 : 1
-  name = "eks-node-role"
-}
-
-# Create IAM Role for EKS Node Group only if it doesn't exist
+# Create IAM Role for EKS Node Group
 resource "aws_iam_role" "eks_node_role" {
-  count = length(data.aws_iam_role.eks_node_role) > 0 ? 0 : 1
-
   name = "eks-node-role"
 
   assume_role_policy = jsonencode({
@@ -356,52 +340,23 @@ resource "aws_iam_role" "eks_node_role" {
 
 # Attach Policies to EKS Node Role
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
-  role       = coalesce(data.aws_iam_role.eks_node_role[0].name, aws_iam_role.eks_node_role[0].name)
+  role       = aws_iam_role.eks_node_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
-  role       = coalesce(data.aws_iam_role.eks_node_role[0].name, aws_iam_role.eks_node_role[0].name)
+  role       = aws_iam_role.eks_node_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
-  role       = coalesce(data.aws_iam_role.eks_node_role[0].name, aws_iam_role.eks_node_role[0].name)
+  role       = aws_iam_role.eks_node_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
 ###############################
 # Secrets Manager Resources   #
 ###############################
-
-# Check if IAM Policy Exists for Secrets Manager
-data "aws_iam_policy" "eks_secrets_manager_policy" {
-  name = "eks-secrets-manager-policy"
-}
-
-# Create IAM Policy only if it doesn't exist
-resource "aws_iam_policy" "eks_secrets_manager_policy" {
-  count       = length(data.aws_iam_policy.eks_secrets_manager_policy.arn) > 0 ? 0 : 1
-  name        = "eks-secrets-manager-policy"
-  description = "Allow EKS to read secrets from Secrets Manager"
-  policy      = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action   = "secretsmanager:GetSecretValue"
-        Resource = aws_secretsmanager_secret.recipe_db_secret.arn
-        Effect   = "Allow"
-      }
-    ]
-  })
-}
-
-# Attach the policy to the EKS Node Role only if not already attached
-resource "aws_iam_role_policy_attachment" "eks_secrets_manager_attach" {
-  count      = length(data.aws_iam_role.eks_node_role.arn) > 0 && length(data.aws_iam_policy.eks_secrets_manager_policy.arn) > 0 ? 0 : 1
-  role       = aws_iam_role.eks_node_role[0].name
-  policy_arn = aws_iam_policy.eks_secrets_manager_policy[0].arn
-}
 
 # Create a secret in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "recipe_db_secret" {
@@ -431,7 +386,7 @@ resource "aws_secretsmanager_secret_version" "recipe_db_secret_version" {
 # Create the EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
   name     = "my-eks-cluster"
-  role_arn = data.aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role.arn
   version  = "1.24"
 
   vpc_config {
@@ -446,7 +401,7 @@ resource "aws_eks_cluster" "eks_cluster" {
 resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "my-node-group"
-  node_role_arn   = data.aws_iam_role.eks_node_role.arn
+  node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
   instance_types  = ["t3.medium"]
 
