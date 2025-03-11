@@ -61,6 +61,8 @@ jobs:
         run: |
           kubectl apply -f dep-ser/backe.yml
           kubectl apply -f dep-ser/fb-dep.yml
+          kubectl rollout restart deployment --all -n default
+
 
       - name: Verify Deployment
         run: |
