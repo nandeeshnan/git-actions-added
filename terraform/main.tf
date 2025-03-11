@@ -17,11 +17,11 @@ resource "aws_vpc" "eks_vpc" {
   }
 }
 
-# Create two public subnets in different AZs and enable auto-assign public IP
+# Create two public subnets in different AZs
 resource "aws_subnet" "eks_subnet_a" {
-  vpc_id            = aws_vpc.eks_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+  vpc_id                  = aws_vpc.eks_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
 
   tags = {
@@ -30,9 +30,9 @@ resource "aws_subnet" "eks_subnet_a" {
 }
 
 resource "aws_subnet" "eks_subnet_b" {
-  vpc_id            = aws_vpc.eks_vpc.id
-  cidr_block        = "10.0.2.0/24"
-  availability_zone = "us-east-1b"
+  vpc_id                  = aws_vpc.eks_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
 
   tags = {
@@ -40,7 +40,7 @@ resource "aws_subnet" "eks_subnet_b" {
   }
 }
 
-# Create an Internet Gateway for the VPC
+# Create an Internet Gateway
 resource "aws_internet_gateway" "eks_igw" {
   vpc_id = aws_vpc.eks_vpc.id
 
@@ -49,7 +49,7 @@ resource "aws_internet_gateway" "eks_igw" {
   }
 }
 
-# Create a Route Table for public subnets
+# Create a Route Table
 resource "aws_route_table" "eks_rt" {
   vpc_id = aws_vpc.eks_vpc.id
 
@@ -63,7 +63,7 @@ resource "aws_route_table" "eks_rt" {
   }
 }
 
-# Associate the Route Table with the subnets
+# Associate Route Table with Subnets
 resource "aws_route_table_association" "eks_rt_assoc_a" {
   subnet_id      = aws_subnet.eks_subnet_a.id
   route_table_id = aws_route_table.eks_rt.id
@@ -78,9 +78,14 @@ resource "aws_route_table_association" "eks_rt_assoc_b" {
 # IAM Roles & Policies        #
 ###############################
 
-# IAM Role for EKS Cluster
-resource "aws_iam_role" "eks_cluster_role" {
+# Check if IAM Role for EKS Cluster exists
+data "aws_iam_role" "existing_eks_cluster_role" {
   name = "eks-cluster-role"
+}
+
+resource "aws_iam_role" "eks_cluster_role" {
+  count = length(data.aws_iam_role.existing_eks_cluster_role.arn) > 0 ? 0 : 1
+  name  = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -98,13 +103,19 @@ resource "aws_iam_role" "eks_cluster_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
-  role       = aws_iam_role.eks_cluster_role.name
+  count      = length(data.aws_iam_role.existing_eks_cluster_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_cluster_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# IAM Role for EKS Node Group
-resource "aws_iam_role" "eks_node_role" {
+# Check if IAM Role for EKS Node Group exists
+data "aws_iam_role" "existing_eks_node_role" {
   name = "eks-node-role"
+}
+
+resource "aws_iam_role" "eks_node_role" {
+  count = length(data.aws_iam_role.existing_eks_node_role.arn) > 0 ? 0 : 1
+  name  = "eks-node-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -122,17 +133,20 @@ resource "aws_iam_role" "eks_node_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
-  role       = aws_iam_role.eks_node_role.name
+  count      = length(data.aws_iam_role.existing_eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
-  role       = aws_iam_role.eks_node_role.name
+  count      = length(data.aws_iam_role.existing_eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
-  role       = aws_iam_role.eks_node_role.name
+  count      = length(data.aws_iam_role.existing_eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
@@ -140,25 +154,36 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
 # EKS Cluster & Node Group    #
 ###############################
 
-# Create the EKS Cluster
+# Check if EKS Cluster exists
+data "aws_eks_cluster" "existing_cluster" {
+  name = "my-eks-cluster"
+}
+
 resource "aws_eks_cluster" "eks_cluster" {
+  count    = length(data.aws_eks_cluster.existing_cluster.id) > 0 ? 0 : 1
   name     = "my-eks-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role[0].arn
   version  = "1.24"
 
   vpc_config {
-    subnet_ids = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
+    subnet_ids             = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
     endpoint_public_access = true
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_attach]
 }
 
-# Create the EKS Node Group
-resource "aws_eks_node_group" "eks_node_group" {
-  cluster_name    = aws_eks_cluster.eks_cluster.name
+# Check if EKS Node Group exists
+data "aws_eks_node_group" "existing_node_group" {
+  cluster_name    = "my-eks-cluster"
   node_group_name = "my-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
+}
+
+resource "aws_eks_node_group" "eks_node_group" {
+  count           = length(data.aws_eks_node_group.existing_node_group.id) > 0 ? 0 : 1
+  cluster_name    = aws_eks_cluster.eks_cluster[0].name
+  node_group_name = "my-node-group"
+  node_role_arn   = aws_iam_role.eks_node_role[0].arn
   subnet_ids      = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
   instance_types  = ["t3.medium"]
 
@@ -178,11 +203,11 @@ resource "aws_eks_node_group" "eks_node_group" {
 ###############################
 
 output "eks_cluster_name" {
-  value = aws_eks_cluster.eks_cluster.name
+  value = aws_eks_cluster.eks_cluster[0].name
 }
 
 output "eks_cluster_endpoint" {
-  value = aws_eks_cluster.eks_cluster.endpoint
+  value = aws_eks_cluster.eks_cluster[0].endpoint
 }
 
 output "eks_vpc_id" {
