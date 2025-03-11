@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres
+    container_name: my_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: nandeesh
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: nandeesh
+    ports:
+      - "5433:5432"
+    networks:
+      - tech_network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile  # ✅ Ensure correct Dockerfile path
+    container_name: fastapi_backend
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://nandeesh:1234@db:5432/nandeesh"
+    ports:
+      - "8000:8000"
+    networks:
+      - tech_network
+    volumes:
+      - ./backend/app:/backend/app  # ✅ Correct volume mount
+
+
+  frontend:
+    build: ./frontend
+    container_name: react_frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - tech_network
+    volumes:
+      - ./frontend:/app
+
+networks:
+  tech_network:
+
+volumes:
+  postgres_data:

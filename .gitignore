@@ -1,0 +1,14 @@
+
+
+# Ignore Terraform state & provider files
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+# Ignore all .env files across the repo
+.env
+*.env
+backend/.env
+frontend/.env
+terraform/.env

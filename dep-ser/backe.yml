@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: nandeesh151/backend_recipe1  
+          ports:
+            - containerPort: 8000  
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://nandeesh:nandeesh123@recipe.chre8zseg00a.eu-north-1.rds.amazonaws.com:5432/recipefind"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8000      
+      targetPort: 8000  
+  type: LoadBalancer   
+

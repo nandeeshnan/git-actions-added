@@ -1,0 +1,47 @@
+name: Deploy to AWS EKS
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on main branch push
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Change if needed
+
+      - name: Check if EKS cluster exists
+        id: check-cluster
+        run: |
+          if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
+            echo "Cluster exists"
+            echo "CLUSTER_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "Cluster does not exist"
+            echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy EKS Cluster (if not exists)
+        if: env.CLUSTER_EXISTS == 'false'
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name my-eks-cluster --region us-east-1
+
+      - name: Deploy Kubernetes manifests
+        run: |
+          kubectl apply -f dep-ser/backe.yml
+          kubectl apply -f dep-ser/fb-dep.yml

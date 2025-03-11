@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1  # You can increase replicas for high availability
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: nandeesh151/backend_recipe1  # Replace with your actual backend image
+          ports:
+            - containerPort: 8000  # Backend application listens on port 8000
+          envFrom:
+          - configMapRef:
+              name: app-env
