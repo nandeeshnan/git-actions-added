@@ -219,67 +219,13 @@ provider "aws" {
 }
 
 ###############################
-# VPC & Networking Resources  #
-###############################
-
-# Create a custom VPC
-resource "aws_vpc" "eks_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "eks-vpc"
-  }
-}
-
-# Create subnets
-resource "aws_subnet" "eks_subnet_a" {
-  vpc_id                  = aws_vpc.eks_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "eks-subnet-a"
-  }
-}
-
-resource "aws_subnet" "eks_subnet_b" {
-  vpc_id                  = aws_vpc.eks_vpc.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1b"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "eks-subnet-b"
-  }
-}
-
-# Internet Gateway
-resource "aws_internet_gateway" "eks_igw" {
-  vpc_id = aws_vpc.eks_vpc.id
-}
-
-# Route Table
-resource "aws_route_table" "eks_rt" {
-  vpc_id = aws_vpc.eks_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.eks_igw.id
-  }
-}
-
-###############################
 # IAM Roles & Policies        #
 ###############################
 
 # Create IAM Role for EKS Cluster only if it doesn't exist
 resource "aws_iam_role" "eks_cluster_role" {
-  count = (length(data.aws_iam_roles.eks_cluster_roles) > 0 ? 0 : 1)
-
-  name = "eks-cluster-role"
+  count = 0 # Set count to 0 for conditional creation
+  name  = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -300,14 +246,13 @@ resource "aws_iam_role" "eks_cluster_role" {
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
   role       = aws_iam_role.eks_cluster_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  count      = length(aws_iam_role.eks_cluster_role) > 0 ? 0 : 1
+  count      = length(aws_iam_role.eks_cluster_role) > 0 ? 1 : 0
 }
 
 # Create IAM Role for EKS Node Group only if it doesn't exist
 resource "aws_iam_role" "eks_node_role" {
-  count = (length(data.aws_iam_roles.eks_node_roles) > 0 ? 0 : 1)
-
-  name = "eks-node-role"
+  count = 0 # Set count to 0 for conditional creation
+  name  = "eks-node-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -328,19 +273,19 @@ resource "aws_iam_role" "eks_node_role" {
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
   role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
   role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
   role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
 }
 
 ###############################
@@ -351,7 +296,7 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
 resource "aws_secretsmanager_secret" "recipe_db_secret" {
   name        = "recipe-db-credentials"
   description = "Database credentials for Recipe Finder application"
-  count       = (length(data.aws_secretsmanager_secret.recipe_db_secret) > 0 ? 0 : 1)
+  count       = 0 # Set count to 0 for conditional creation
 
   tags = {
     Name = "recipe-db-credentials"
@@ -367,7 +312,7 @@ resource "aws_secretsmanager_secret_version" "recipe_db_secret_version" {
     API_KEY="c2927a6f1a064a8fa471e31d4d46269f"
     BASE_URL="https://api.spoonacular.com/recipes"
   })
-  count         = (length(data.aws_secretsmanager_secret.recipe_db_secret) > 0 ? 0 : 1)
+  count         = 0
 }
 
 ###############################
@@ -427,3 +372,4 @@ output "cluster_endpoint" {
 output "cluster_arn" {
   value = aws_eks_cluster.eks_cluster.arn
 }
+
