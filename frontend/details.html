@@ -84,7 +84,7 @@
     
     async function fetchRecipeDetails(recipeId) {
       try {
-        const response = await fetch(`http://acfd145e705b3465884abcfccfe5c14a-536035327.us-east-1.elb.amazonaws.com:8000/api/recipe/details?recipe_id=${recipeId}`, {
+        const response = await fetch(`http://ae214debe2d3444d287357b4845891b0-195775739.us-east-1.elb.amazonaws.com:8000/api/recipe/details?recipe_id=${recipeId}`, {
           headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         if (!response.ok) {
