@@ -215,7 +215,7 @@
 
 
 provider "aws" {
-  region = "us-east-1"  # Adjust as needed
+  region = "us-east-1"
 }
 
 ###############################
@@ -233,7 +233,7 @@ resource "aws_vpc" "eks_vpc" {
   }
 }
 
-# Create two public subnets in different AZs
+# Create subnets
 resource "aws_subnet" "eks_subnet_a" {
   vpc_id                  = aws_vpc.eks_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -256,16 +256,12 @@ resource "aws_subnet" "eks_subnet_b" {
   }
 }
 
-# Create an Internet Gateway
+# Internet Gateway
 resource "aws_internet_gateway" "eks_igw" {
   vpc_id = aws_vpc.eks_vpc.id
-
-  tags = {
-    Name = "eks-igw"
-  }
 }
 
-# Create a Route Table
+# Route Table
 resource "aws_route_table" "eks_rt" {
   vpc_id = aws_vpc.eks_vpc.id
 
@@ -273,29 +269,16 @@ resource "aws_route_table" "eks_rt" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.eks_igw.id
   }
-
-  tags = {
-    Name = "eks-rt"
-  }
-}
-
-# Associate Route Table with Subnets
-resource "aws_route_table_association" "eks_rt_assoc_a" {
-  subnet_id      = aws_subnet.eks_subnet_a.id
-  route_table_id = aws_route_table.eks_rt.id
-}
-
-resource "aws_route_table_association" "eks_rt_assoc_b" {
-  subnet_id      = aws_subnet.eks_subnet_b.id
-  route_table_id = aws_route_table.eks_rt.id
 }
 
 ###############################
 # IAM Roles & Policies        #
 ###############################
 
-# Create IAM Role for EKS Cluster
+# Create IAM Role for EKS Cluster only if it doesn't exist
 resource "aws_iam_role" "eks_cluster_role" {
+  count = (length(data.aws_iam_roles.eks_cluster_roles) > 0 ? 0 : 1)
+
   name = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
@@ -315,12 +298,15 @@ resource "aws_iam_role" "eks_cluster_role" {
 
 # Attach IAM Policies to Cluster Role
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
-  role       = aws_iam_role.eks_cluster_role.name
+  role       = aws_iam_role.eks_cluster_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  count      = length(aws_iam_role.eks_cluster_role) > 0 ? 0 : 1
 }
 
-# Create IAM Role for EKS Node Group
+# Create IAM Role for EKS Node Group only if it doesn't exist
 resource "aws_iam_role" "eks_node_role" {
+  count = (length(data.aws_iam_roles.eks_node_roles) > 0 ? 0 : 1)
+
   name = "eks-node-role"
 
   assume_role_policy = jsonencode({
@@ -338,45 +324,50 @@ resource "aws_iam_role" "eks_node_role" {
   }
 }
 
-# Attach Policies to EKS Node Role
+# Attach IAM Policies to Node Role
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
-  role       = aws_iam_role.eks_node_role.name
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
-  role       = aws_iam_role.eks_node_role.name
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
 }
 
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
-  role       = aws_iam_role.eks_node_role.name
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  count      = length(aws_iam_role.eks_node_role) > 0 ? 0 : 1
 }
 
 ###############################
 # Secrets Manager Resources   #
 ###############################
 
-# Create a secret in AWS Secrets Manager
+# Create a secret in AWS Secrets Manager only if it doesn't exist
 resource "aws_secretsmanager_secret" "recipe_db_secret" {
   name        = "recipe-db-credentials"
   description = "Database credentials for Recipe Finder application"
+  count       = (length(data.aws_secretsmanager_secret.recipe_db_secret) > 0 ? 0 : 1)
 
   tags = {
     Name = "recipe-db-credentials"
   }
 }
 
-# Add secret value (username and password for DB, example)
+# Add secret value only if it doesn't exist
 resource "aws_secretsmanager_secret_version" "recipe_db_secret_version" {
-  secret_id     = aws_secretsmanager_secret.recipe_db_secret.id
+  secret_id     = aws_secretsmanager_secret.recipe_db_secret[0].id
   secret_string = jsonencode({
     DATABASE_URL="postgresql+asyncpg://nandeesh:nandeesh123@database-1.cxm2omoga4r6.us-east-1.rds.amazonaws.com:5432/recipefind"
     SECRET_KEY="5bc7c50b424b658b719ca27c76233fa2b78458124ab54b2007a28308f7b351eb"
     API_KEY="c2927a6f1a064a8fa471e31d4d46269f"
     BASE_URL="https://api.spoonacular.com/recipes"
   })
+  count         = (length(data.aws_secretsmanager_secret.recipe_db_secret) > 0 ? 0 : 1)
 }
 
 ###############################
@@ -386,7 +377,7 @@ resource "aws_secretsmanager_secret_version" "recipe_db_secret_version" {
 # Create the EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
   name     = "my-eks-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role[0].arn
   version  = "1.24"
 
   vpc_config {
@@ -394,14 +385,16 @@ resource "aws_eks_cluster" "eks_cluster" {
     endpoint_public_access  = true
   }
 
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_attach]
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_cluster_policy_attach
+  ]
 }
 
 # Create the EKS Node Group
 resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "my-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
+  node_role_arn   = aws_iam_role.eks_node_role[0].arn
   subnet_ids      = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
   instance_types  = ["t3.medium"]
 
@@ -413,7 +406,10 @@ resource "aws_eks_node_group" "eks_node_group" {
 
   ami_type = "AL2_x86_64"
 
-  depends_on = [aws_iam_role_policy_attachment.eks_node_policy_attach, aws_iam_role_policy_attachment.eks_node_policy_attach2]
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_node_policy_attach,
+    aws_iam_role_policy_attachment.eks_node_policy_attach2
+  ]
 }
 
 ###############################
