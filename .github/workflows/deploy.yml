@@ -93,8 +93,8 @@ jobs:
 
       - name: Build and Push Backend Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest ./backend
-          docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe1:latest ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe1:latest
 
       - name: Build and Push Frontend Image
         run: |
