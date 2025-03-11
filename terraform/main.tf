@@ -219,129 +219,95 @@ provider "aws" {
 }
 
 ###############################
-# IAM Roles & Policies        #
+# Reference Existing IAM Roles #
 ###############################
 
-# Create IAM Role for EKS Cluster only if it doesn't exist
-resource "aws_iam_role" "eks_cluster_role" {
-  count = 0 # Set count to 0 for conditional creation
-  name  = "eks-cluster-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Action    = "sts:AssumeRole",
-      Principal = { Service = "eks.amazonaws.com" },
-      Effect    = "Allow",
-      Sid       = ""
-    }]
-  })
-
-  tags = {
-    Name = "eks-cluster-role"
-  }
+# Reference the Existing EKS Cluster Role
+data "aws_iam_role" "eks_cluster_role" {
+  name = "eks-cluster-role"  # Replace with your actual role name
 }
 
-# Attach IAM Policies to Cluster Role
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
-  role       = aws_iam_role.eks_cluster_role[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  count      = length(aws_iam_role.eks_cluster_role) > 0 ? 1 : 0
-}
-
-# Create IAM Role for EKS Node Group only if it doesn't exist
-resource "aws_iam_role" "eks_node_role" {
-  count = 0 # Set count to 0 for conditional creation
-  name  = "eks-node-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Action    = "sts:AssumeRole",
-      Principal = { Service = "ec2.amazonaws.com" },
-      Effect    = "Allow",
-      Sid       = ""
-    }]
-  })
-
-  tags = {
-    Name = "eks-node-role"
-  }
-}
-
-# Attach IAM Policies to Node Role
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
-  role       = aws_iam_role.eks_node_role[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
-  role       = aws_iam_role.eks_node_role[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
-  role       = aws_iam_role.eks_node_role[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  count      = length(aws_iam_role.eks_node_role) > 0 ? 1 : 0
+# Reference the Existing EKS Node Role
+data "aws_iam_role" "eks_node_role" {
+  name = "eks-node-role"  # Replace with your actual role name
 }
 
 ###############################
-# Secrets Manager Resources   #
+# Reference Existing Secrets Manager Secret #
 ###############################
 
-# Create a secret in AWS Secrets Manager only if it doesn't exist
+# Reference the Existing Secret for Database Credentials
+data "aws_secretsmanager_secret" "recipe_db_secret" {
+  name = "recipe-db-credentials"  # Replace with your actual secret name
+}
+
+# If the secret does not exist, create it
 resource "aws_secretsmanager_secret" "recipe_db_secret" {
-  name        = "recipe-db-credentials"
-  description = "Database credentials for Recipe Finder application"
-  count       = 0 # Set count to 0 for conditional creation
-
-  tags = {
-    Name = "recipe-db-credentials"
-  }
-}
-
-# Add secret value only if it doesn't exist
-resource "aws_secretsmanager_secret_version" "recipe_db_secret_version" {
-  secret_id     = aws_secretsmanager_secret.recipe_db_secret[0].id
-  secret_string = jsonencode({
-    DATABASE_URL="postgresql+asyncpg://nandeesh:nandeesh123@database-1.cxm2omoga4r6.us-east-1.rds.amazonaws.com:5432/recipefind"
-    SECRET_KEY="5bc7c50b424b658b719ca27c76233fa2b78458124ab54b2007a28308f7b351eb"
-    API_KEY="c2927a6f1a064a8fa471e31d4d46269f"
-    BASE_URL="https://api.spoonacular.com/recipes"
-  })
-  count         = 0
+  count        = length(data.aws_secretsmanager_secret.recipe_db_secret) > 0 ? 0 : 1
+  name         = "recipe-db-credentials"  # Replace with your actual secret name
+  description  = "Database credentials for the Recipe Finder application"
+  recovery_window_in_days = 7
 }
 
 ###############################
-# EKS Cluster & Node Group    #
+# VPC & Subnets              #
 ###############################
 
-# Create the EKS Cluster
+# Reference Existing VPC (if required)
+data "aws_vpc" "eks_vpc" {
+  id = "vpc-04c743847428d6e25"  # Replace with your existing VPC ID
+}
+
+# Reference Existing Subnet A
+data "aws_subnet" "eks_subnet_a" {
+  id = "subnet-00bd253294d9600fa"  # Replace with your existing subnet ID
+}
+
+# Reference Existing Subnet B
+data "aws_subnet" "eks_subnet_b" {
+  id = "subnet-0837b0c7e2596e21f"  # Replace with your existing subnet ID
+}
+
+###############################
+# Check if EKS Cluster Exists #
+###############################
+
+# Check if the EKS Cluster exists
+data "aws_eks_cluster" "eks_cluster" {
+  name = "my-eks-cluster"  # Replace with your actual cluster name
+}
+
+###############################
+# Create EKS Cluster if not Exists #
+###############################
+
 resource "aws_eks_cluster" "eks_cluster" {
-  name     = "my-eks-cluster"
-  role_arn = aws_iam_role.eks_cluster_role[0].arn
+  count    = length(data.aws_eks_cluster.eks_cluster) == 0 ? 1 : 0
+  name     = "my-eks-cluster"  # Replace with your actual cluster name
+  role_arn = data.aws_iam_role.eks_cluster_role.arn
   version  = "1.24"
 
   vpc_config {
-    subnet_ids              = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
-    endpoint_public_access  = true
+    subnet_ids             = [data.aws_subnet.eks_subnet_a.id, data.aws_subnet.eks_subnet_b.id]
+    endpoint_public_access = true
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_cluster_policy_attach
+    data.aws_iam_role.eks_cluster_role  # Ensuring the IAM role exists before creating the cluster
   ]
 }
 
-# Create the EKS Node Group
+###############################
+# Create EKS Node Group if Cluster Created #
+###############################
+
 resource "aws_eks_node_group" "eks_node_group" {
-  cluster_name    = aws_eks_cluster.eks_cluster.name
+  count        = length(data.aws_eks_cluster.eks_cluster) == 0 || length(data.aws_eks_node_group.eks_node_group) == 0 ? 1 : 0
+  cluster_name = aws_eks_cluster.eks_cluster.name
   node_group_name = "my-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role[0].arn
-  subnet_ids      = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
-  instance_types  = ["t3.medium"]
+  node_role_arn = data.aws_iam_role.eks_node_role.arn
+  subnet_ids    = [data.aws_subnet.eks_subnet_a.id, data.aws_subnet.eks_subnet_b.id]
+  instance_types = ["t3.medium"]
 
   scaling_config {
     min_size     = 1
@@ -352,8 +318,8 @@ resource "aws_eks_node_group" "eks_node_group" {
   ami_type = "AL2_x86_64"
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_node_policy_attach,
-    aws_iam_role_policy_attachment.eks_node_policy_attach2
+    aws_eks_cluster.eks_cluster,  # Ensuring the EKS cluster exists before creating the node group
+    data.aws_iam_role.eks_node_role  # Ensuring the IAM role exists before creating the node group
   ]
 }
 
@@ -373,3 +339,10 @@ output "cluster_arn" {
   value = aws_eks_cluster.eks_cluster.arn
 }
 
+output "recipe_db_secret_arn" {
+  value = aws_secretsmanager_secret.recipe_db_secret.arn
+}
+
+output "recipe_db_secret_value" {
+  value = aws_secretsmanager_secret.recipe_db_secret.secret_string
+}
