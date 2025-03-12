@@ -19,7 +19,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile  # ✅ Ensure correct Dockerfile path
+      dockerfile: backend/Dockerfile 
     container_name: fastapi_backend
     depends_on:
       - db
@@ -30,7 +30,7 @@ services:
     networks:
       - tech_network
     volumes:
-      - ./backend/app:/backend/app  # ✅ Correct volume mount
+      - ./backend/app:/backend/app  
 
 
   frontend:
