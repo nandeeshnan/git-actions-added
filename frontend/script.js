@@ -47,7 +47,7 @@ async function loginHandler(event) {
   const password = document.getElementById('password').value;
 
   try {
-    const response = await fetch('${window.BACKEND_URL}/auth/login', {
+    const response = await fetch(window.BACKEND_URL + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -73,7 +73,7 @@ async function signupHandler(event) {
   const password = document.getElementById('password').value;
 
   try {
-    const response = await fetch('${window.BACKEND_URL}/auth/signup', {
+    const response = await fetch(window.BACKEND_URL + '/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -101,7 +101,7 @@ async function fetchRecipesHandler() {
   }
 
   try {
-    const response = await fetch('${window.BACKEND_URL}/api/recipes', {
+    const response = await fetch(window.BACKEND_URL + '/api/recipes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ function viewDetails(recipeId) {
 
 async function saveRecipe(recipe) {
   try {
-    const response = await fetch('${window.BACKEND_URL}/api/save', {
+    const response = await fetch(window.BACKEND_URL + '/api/save', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ async function saveRecipe(recipe) {
 
 async function fetchSavedRecipes() {
   try {
-    const response = await fetch('${window.BACKEND_URL}/api/saved', {
+    const response = await fetch(window.BACKEND_URL + '/api/saved', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
