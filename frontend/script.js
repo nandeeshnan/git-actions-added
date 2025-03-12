@@ -1,3 +1,5 @@
+import CONFIG from './config.js';
+
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('token');
   const path = window.location.pathname.toLowerCase();
@@ -47,7 +49,7 @@ async function loginHandler(event) {
   const password = document.getElementById('password').value;
 
   try {
-    const response = await fetch('http://backend.default.svc.cluster.local:8000/auth/login', {
+    const response = await fetch('${window.BACKEND_URL}/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -73,7 +75,7 @@ async function signupHandler(event) {
   const password = document.getElementById('password').value;
 
   try {
-    const response = await fetch('http://backend.default.svc.cluster.local:8000/auth/signup', {
+    const response = await fetch('${window.BACKEND_URL}/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -101,7 +103,7 @@ async function fetchRecipesHandler() {
   }
 
   try {
-    const response = await fetch('http://backend.default.svc.cluster.local:8000/api/recipes', {
+    const response = await fetch('${window.BACKEND_URL}/api/recipes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,7 +154,7 @@ function viewDetails(recipeId) {
 
 async function saveRecipe(recipe) {
   try {
-    const response = await fetch('http://backend.default.svc.cluster.local:8000/api/save', {
+    const response = await fetch('${window.BACKEND_URL}/api/save', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -182,7 +184,7 @@ async function saveRecipe(recipe) {
 
 async function fetchSavedRecipes() {
   try {
-    const response = await fetch('http://backend.default.svc.cluster.local:8000/api/saved', {
+    const response = await fetch('${window.BACKEND_URL}/api/saved', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -222,7 +224,7 @@ function displaySaved(recipes) {
 
 async function deleteSaved(savedId) {
   try {
-    const response = await fetch(`http://backend.default.svc.cluster.local:8000/api/saved/${savedId}`, {
+    const response = await fetch(`${window.BACKEND_URL}/api/saved/${savedId}`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
     });
