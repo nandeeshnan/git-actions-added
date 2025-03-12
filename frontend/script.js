@@ -1,5 +1,3 @@
-import CONFIG from './config.js';
-
 document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('token');
   const path = window.location.pathname.toLowerCase();
