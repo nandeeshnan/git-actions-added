@@ -162,26 +162,23 @@ jobs:
           kubectl apply -f dep-ser/backe.yml
           kubectl rollout restart deployment backend -n default
 
-      - name: Wait for Backend to Get External IP
+      - name: Wait for Backend Load Balancer IP
         run: |
           echo "Waiting for backend service to get an external IP..."
-          sleep 60  # Wait for service to be assigned an external IP
-
-      - name: Fetch Backend External IP
-        id: get-backend-ip
-        run: |
-          BACKEND_IP=""
-          while [ -z "$BACKEND_IP" ]; do
-            echo "Fetching External IP..."
-            BACKEND_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          for i in {1..30}; do
+            BACKEND_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [[ ! -z "$BACKEND_IP" ]]; then
+              echo "Backend Load Balancer is available at: http://$BACKEND_IP:8000"
+              echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
+              break
+            fi
+            echo "Still waiting... ($i/30)"
             sleep 10
           done
-          echo "Backend IP is: $BACKEND_IP"
-          echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
 
       - name: Update Frontend config.js with Backend IP
         run: |
-          echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
+          sed -i "s|window.BACKEND_URL = .*|window.BACKEND_URL = 'http://$BACKEND_IP:8000';|" frontend/config.js
 
       - name: Build and Push Updated Frontend Image
         run: |
