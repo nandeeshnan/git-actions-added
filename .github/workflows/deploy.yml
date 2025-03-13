@@ -178,7 +178,8 @@ jobs:
 
       - name: Update Frontend config.js with Backend IP
         run: |
-          sed -i "s|window.BACKEND_URL = .*|window.BACKEND_URL = 'http://$BACKEND_IP:8000';|" frontend/config.js
+          echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
+
 
       - name: Build and Push Updated Frontend Image
         run: |
