@@ -34,7 +34,7 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 1  # Increased replicas for high availability
+  replicas: 2  # Increased replicas for high availability
   strategy:
     type: RollingUpdate
     rollingUpdate:
