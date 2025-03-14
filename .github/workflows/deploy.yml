@@ -164,18 +164,24 @@ jobs:
       - name: Verify Backend Deployment & Rollback on Failure
         run: |
           # Wait for deployment rollout (timeout after 90s if not successful)
-          kubectl rollout status deployment backend -n default --timeout=90s || (echo "Backend rollout timeout! Rolling back..." && kubectl rollout undo deployment backend -n default)
+          kubectl rollout status deployment backend -n default --timeout=30s || (echo "Backend rollout timeout! Rolling back..." && kubectl rollout undo deployment backend -n default)
 
-          # Get the pod status
+          # Get the pod status and container image status
           POD_STATUS=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].status.phase}')
-          
-          # If pod is NOT running, trigger rollback
-          if [[ "$POD_STATUS" != "Running" ]]; then
-            echo "Pod is in $POD_STATUS state! Rolling back deployment..."
+          IMAGE_STATUS=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].status.containerStatuses[0].state.waiting.reason}')
+
+          # If pod is NOT running or in ImagePullBackOff, trigger rollback and delete faulty pod
+          if [[ "$POD_STATUS" != "Running" || "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" ]]; then
+            echo "Pod is in $POD_STATUS state with error: $IMAGE_STATUS! Rolling back deployment..."
             kubectl rollout undo deployment backend -n default
+            
+            # Delete bad pods to ensure fresh ones are created
+            echo "Deleting faulty pods..."
+            kubectl delete pods -l app=backend -n default --force --grace-period=0
           else
             echo "Deployment is successful! Pod is in Running state."
           fi
+
 
       - name: Wait for Backend Load Balancer IP
         run: |
