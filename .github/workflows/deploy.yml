@@ -76,38 +76,25 @@ jobs:
         run: |
           echo "Waiting for backend rollout..."
           if ! kubectl rollout status deployment backend -n default --timeout=60s; then
-            echo "Backend rollout failed! Checking previous ReplicaSet..."
-
-            # Get the previous ReplicaSet
-            PREVIOUS_RS=$(kubectl get rs -n default -l app=backend --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-2].metadata.name}')
-
-            if [[ -z "$PREVIOUS_RS" ]]; then
-              echo "No previous ReplicaSet found. Cannot roll back. Manual intervention required."
-              exit 1
+            echo "Backend rollout failed! Checking pod status..."
+              
+            # Get pod name
+            POD_NAME=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].metadata.name}')
+              
+            # Get container status
+            IMAGE_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}')
+            
+            if [[ "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" || "$IMAGE_STATUS" == "CrashLoopBackOff" ]]; then
+              echo "Detected ImagePullBackOff or ErrImagePull, rolling back..."
+              kubectl rollout undo deployment backend -n default
+              echo "Rollback triggered."
+            
+              # Delete faulty pods to ensure fresh ones are created
+              echo "Deleting faulty pods..."
+              kubectl delete pod $POD_NAME -n default --force --grace-period=0
             fi
+          fi  # This closes the main if block
 
-            echo "Previous ReplicaSet: $PREVIOUS_RS"
-
-            # Check if the previous ReplicaSet is valid
-            PREVIOUS_RS_READY=$(kubectl get rs $PREVIOUS_RS -n default -o jsonpath='{.status.readyReplicas}')
-            if [[ "$PREVIOUS_RS_READY" -eq 0 ]]; then
-              echo "Previous ReplicaSet is not ready. Cannot roll back. Manual intervention required."
-              exit 1
-            fi
-
-            echo "Rolling back to previous ReplicaSet..."
-            kubectl rollout undo deployment backend -n default
-
-            echo "Rollback triggered. Checking rollout status again..."
-            if ! kubectl rollout status deployment backend -n default --timeout=60s; then
-              echo "Rollback failed! Manual intervention required."
-              exit 1
-            else
-              echo "Rollback successful."
-            fi
-          else
-            echo "Backend rollout successful."
-          fi
 
       - name: Wait for Backend Load Balancer IP
         run: |
