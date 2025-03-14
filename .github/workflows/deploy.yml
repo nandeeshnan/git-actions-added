@@ -166,23 +166,34 @@ jobs:
           echo "Waiting for backend rollout..."
           if ! kubectl rollout status deployment backend -n default --timeout=60s; then
             echo "Backend rollout failed! Checking pod status..."
-            
+              
             # Get pod name
-            POD_NAME=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].metadata.name}')
-            
-            # Get container status
-            IMAGE_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}')
+            POD_NAME=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 
+            # Ensure POD_NAME is not empty
+            if [[ -z "$POD_NAME" ]]; then
+              echo "No faulty pod found. It might have already been removed."
+              exit 0
+            fi
+              
+            # Get container status
+            IMAGE_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}' 2>/dev/null)
+            
             if [[ "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" || "$IMAGE_STATUS" == "CrashLoopBackOff" ]]; then
               echo "Detected ImagePullBackOff or ErrImagePull, rolling back..."
               kubectl rollout undo deployment backend -n default
               echo "Rollback triggered."
-
-              # Delete faulty pods to ensure fresh ones are created
-              echo "Deleting faulty pods..."
-              kubectl delete pod $POD_NAME -n default --force --grace-period=0
+            
+              # Double-check if pod still exists before trying to delete it
+              if kubectl get pod $POD_NAME -n default &>/dev/null; then
+                echo "Deleting faulty pod: $POD_NAME..."
+                kubectl delete pod $POD_NAME -n default --force --grace-period=0
+              else
+                echo "Pod $POD_NAME no longer exists, skipping deletion."
+              fi
             fi
           fi
+
 
       - name: Wait for Backend Load Balancer IP
         run: |
