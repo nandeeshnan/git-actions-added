@@ -163,7 +163,7 @@ jobs:
           kubectl rollout restart deployment backend -n default
       - name: Verify Backend Deployment & Rollback on Failure
         run: |
-          kubectl rollout status deployment backend -n default --timeout=90s || (echo "Backend deployment failed! Rolling back..." && kubectl rollout undo deployment backend -n default)
+          kubectl rollout status deployment backend -n default --timeout=30s || (echo "Backend deployment failed! Rolling back..." && kubectl rollout undo deployment backend -n default)
 
       - name: Wait for Backend Load Balancer IP
         run: |
