@@ -34,12 +34,12 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 1  # Increase replicas for high availability
+  replicas: 1  # Increased replicas for high availability
   strategy:
-    type: RollingUpdate  # Enables rollback if new deployment fails
+    type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
-      maxSurge: 1
+      maxUnavailable: 1  # Maximum number of pods that can be unavailable during the update
+      maxSurge: 1        # Maximum number of pods that can be created over the desired number of pods
   selector:
     matchLabels:
       app: backend
@@ -50,9 +50,9 @@ spec:
     spec:
       containers:
         - name: backend
-          image: nandeesh151/backend_recipe2
+          image: nandeesh151/backend_recipe2:notexistent
           ports:
-            - containerPort: 8000  
+            - containerPort: 8000
           env:
             - name: SECRET_KEY
               valueFrom:
@@ -64,8 +64,26 @@ spec:
                 secretKeyRef:
                   name: my-secrets
                   key: DATABASE_URL
+          livenessProbe:  # Added liveness probe
+            httpGet:
+              path: /health  # Replace with your health check endpoint
+              port: 8000
+            initialDelaySeconds: 10  # Wait 10 seconds before starting probes
+            periodSeconds: 5         # Check every 5 seconds
+          readinessProbe:  # Added readiness probe
+            httpGet:
+              path: /ready  # Replace with your readiness check endpoint
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:  # Added resource requests and limits
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -75,7 +93,6 @@ spec:
     app: backend
   ports:
     - protocol: TCP
-      port: 8000      
-      targetPort: 8000  
-  type: LoadBalancer   
-
+      port: 8000
+      targetPort: 8000
+  type: LoadBalancer  
