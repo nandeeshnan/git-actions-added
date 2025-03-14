@@ -163,7 +163,7 @@ jobs:
           kubectl rollout restart deployment backend -n default
       - name: Verify Backend Deployment & Rollback on Failure
         run: |
-          # Wait for deployment rollout (timeout after 90s if not successful)
+          # Wait for deployment rollout (timeout after 30s if not successful)
           kubectl rollout status deployment backend -n default --timeout=30s || (echo "Backend rollout timeout! Rolling back..." && kubectl rollout undo deployment backend -n default)
 
           # Get the pod status and container image status
