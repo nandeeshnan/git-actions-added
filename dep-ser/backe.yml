@@ -64,9 +64,6 @@ spec:
                 secretKeyRef:
                   name: my-secrets
                   key: DATABASE_URL
-
-
-
 ---
 
 apiVersion: v1
