@@ -64,6 +64,25 @@ spec:
                 secretKeyRef:
                   name: my-secrets
                   key: DATABASE_URL
+          livenessProbe:  # Added liveness probe
+            httpGet:
+              path: /health  # Replace with your health check endpoint
+              port: 8000
+            initialDelaySeconds: 10  # Wait 10 seconds before starting probes
+            periodSeconds: 5         # Check every 5 seconds
+          readinessProbe:  # Added readiness probe
+            httpGet:
+              path: /ready  # Replace with your readiness check endpoint
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:  # Added resource requests and limits
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service
