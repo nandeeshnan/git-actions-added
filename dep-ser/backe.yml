@@ -34,7 +34,7 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 2  # Increase replicas for high availability
+  replicas: 1  # Increase replicas for high availability
   strategy:
     type: RollingUpdate  # Enables rollback if new deployment fails
     rollingUpdate:
@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: nandeesh151/backend_recipe2
+          image: nandeesh151/backend_recipe
           ports:
             - containerPort: 8000  
           env:
