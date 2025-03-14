@@ -163,24 +163,25 @@ jobs:
           kubectl rollout restart deployment backend -n default
       - name: Verify Backend Deployment & Rollback on Failure
         run: |
-          # Wait for deployment rollout (timeout after 30s if not successful)
-          kubectl rollout status deployment backend -n default --timeout=30s || (echo "Backend rollout timeout! Rolling back..." && kubectl rollout undo deployment backend -n default)
-
-          # Get the pod status and container image status
-          POD_STATUS=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].status.phase}')
-          IMAGE_STATUS=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].status.containerStatuses[0].state.waiting.reason}')
-
-          # If pod is NOT running or in ImagePullBackOff, trigger rollback and delete faulty pod
-          if [[ "$POD_STATUS" != "Running" || "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" ]]; then
-            echo "Pod is in $POD_STATUS state with error: $IMAGE_STATUS! Rolling back deployment..."
-            kubectl rollout undo deployment backend -n default
+          echo "Waiting for backend rollout..."
+          if ! kubectl rollout status deployment backend -n default --timeout=60s; then
+            echo "Backend rollout failed! Checking pod status..."
             
-            # Delete bad pods to ensure fresh ones are created
-            echo "Deleting faulty pods..."
-            kubectl delete pods -l app=backend -n default --force --grace-period=0
-          else
-            echo "Deployment is successful! Pod is in Running state."
-          fi
+            # Get pod name
+            POD_NAME=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].metadata.name}')
+            
+            # Get container status
+            IMAGE_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}')
+
+            if [[ "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" || "$IMAGE_STATUS" == "CrashLoopBackOff" ]]; then
+              echo "Detected ImagePullBackOff or ErrImagePull, rolling back..."
+              kubectl rollout undo deployment backend -n default
+              echo "Rollback triggered."
+
+              # Delete faulty pods to ensure fresh ones are created
+              echo "Deleting faulty pods..."
+              kubectl delete pod $POD_NAME -n default --force --grace-period=0
+            fi
 
 
       - name: Wait for Backend Load Balancer IP
