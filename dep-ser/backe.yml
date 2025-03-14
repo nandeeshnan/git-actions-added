@@ -64,18 +64,7 @@ spec:
                 secretKeyRef:
                   name: my-secrets
                   key: DATABASE_URL
-          livenessProbe:  # Check if the container is alive
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          readinessProbe:  # Check if the container is ready to accept traffic
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 10
+
 
 
 ---
