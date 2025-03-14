@@ -1,9 +1,45 @@
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: backend
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: backend
+#   template:
+#     metadata:
+#       labels:
+#         app: backend
+#     spec:
+#       containers:
+#         - name: backend
+#           image: nandeesh151/backend_recipe2
+#           ports:
+#             - containerPort: 8000  
+#           env:
+#             - name: SECRET_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: my-secrets
+#                   key: SECRET_KEY
+#             - name: DATABASE_URL
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: my-secrets
+#                   key: DATABASE_URL
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 1
+  replicas: 2  # Increase replicas for high availability
+  strategy:
+    type: RollingUpdate  # Enables rollback if new deployment fails
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: backend
@@ -28,6 +64,18 @@ spec:
                 secretKeyRef:
                   name: my-secrets
                   key: DATABASE_URL
+          livenessProbe:  # Check if the container is alive
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:  # Check if the container is ready to accept traffic
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 
 
 ---
