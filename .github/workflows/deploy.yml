@@ -182,7 +182,7 @@ jobs:
               echo "Deleting faulty pods..."
               kubectl delete pod $POD_NAME -n default --force --grace-period=0
             fi
-
+          fi
 
       - name: Wait for Backend Load Balancer IP
         run: |
