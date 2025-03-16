@@ -129,7 +129,7 @@ jobs:
       - name: Deploy Frontend Application to EKS
         run: |
           kubectl apply -f dep-ser/fb-dep.yml
-          kubectl rollout restart deployment frontend -n default
+          kubectl rollout undo deployment frontend -n default
 
       - name: Verify Deployment
         run: |
