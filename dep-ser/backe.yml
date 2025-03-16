@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: nandeesh151/backend_recipe2:v2
+          image: nandeesh151/backend_recipe2
           ports:
             - containerPort: 8000
           env:
