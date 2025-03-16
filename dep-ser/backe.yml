@@ -34,12 +34,12 @@ kind: Deployment
 metadata:
   name: backend
 spec:
-  replicas: 2  # Increased replicas for high availability
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0 # Maximum number of pods that can be unavailable during the update
-      maxSurge: 1        # Maximum number of pods that can be created over the desired number of pods
+      maxUnavailable: 0 
+      maxSurge: 1     
   selector:
     matchLabels:
       app: backend
@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: nandeesh151/backend_recipe2:v2
+          image: nandeesh151/backend_recipe2
           ports:
             - containerPort: 8000
           env:
