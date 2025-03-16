@@ -4,12 +4,9 @@ on:
   push:
     branches:
       - main  
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -129,7 +126,7 @@ jobs:
       - name: Deploy Frontend Application to EKS
         run: |
           kubectl apply -f dep-ser/fb-dep.yml
-          kubectl rollout undo deployment frontend -n default
+          kubectl rollout restart deployment frontend -n default
 
       - name: Verify Deployment
         run: |
