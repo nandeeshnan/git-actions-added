@@ -174,8 +174,8 @@ jobs:
 
       - name: Deploy Backend Application to EKS
         run: |
-          kubectl apply -f dep-ser/secrets.yml
-          kubectl apply -f dep-ser/backe.yml
+          kubectl apply -f dep-ser/secrets.yml --record
+          kubectl apply -f dep-ser/backe.yml --record
 
       - name: Wait for Backend Deployment
         id: check-backend-deployment
@@ -217,7 +217,7 @@ jobs:
 
       - name: Deploy Frontend Application to EKS
         run: |
-          kubectl apply -f dep-ser/fb-dep.yml
+          kubectl apply -f dep-ser/fb-dep.yml --record
 
       - name: Wait for Frontend Deployment
         id: check-frontend-deployment
