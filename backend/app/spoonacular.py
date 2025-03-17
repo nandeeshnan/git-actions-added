@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 import httpx
 load_dotenv()
-# API_KEY = os.getenv("API_KEY")
-API_KEY = "c2927a6f1a064a8fa471e31d4d46269f"
+API_KEY = os.getenv("API_KEY")
+# API_KEY = "c2927a6f1a064a8fa471e31d4d46269f"
 BASE_URL = "https://api.spoonacular.com/recipes"
 
 async def get_recipes_by_ingredients(ingredients: str, number: int = 20):

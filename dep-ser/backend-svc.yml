@@ -7,6 +7,6 @@ spec:
     app: backend
   ports:
     - protocol: TCP
-      port: 8000  # Exposes port 8000 internally
-      targetPort: 8000  # The target port inside the backend container
+      port: 8000
+      targetPort: 8000  
   type: ClusterIP

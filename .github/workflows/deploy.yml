@@ -70,34 +70,6 @@ jobs:
           kubectl apply -f dep-ser/backe.yml
           kubectl rollout restart deployment backend -n default
 
-      # - name: Verify Backend Deployment & Rollback on Failure
-      #   run: |
-      #     echo "Waiting for backend rollout..."
-      #     if ! kubectl rollout status deployment backend -n default --timeout=30s; then
-      #       echo "Backend rollout failed! Checking pod status..."
-              
-      #       # Get pod name
-      #       POD_NAME=$(kubectl get pods -l app=backend -n default -o jsonpath='{.items[0].metadata.name}')
-              
-      #       # Get container status
-      #       IMAGE_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath='{.status.containerStatuses[0].state.waiting.reason}')
-            
-      #       if [[ "$IMAGE_STATUS" == "ImagePullBackOff" || "$IMAGE_STATUS" == "ErrImagePull" || "$IMAGE_STATUS" == "CrashLoopBackOff" ]]; then
-      #         echo "Detected ImagePullBackOff or ErrImagePull, rolling back..."
-      #         kubectl rollout undo deployment backend -n default
-      #         echo "Rollback triggered."
-            
-      #         # Delete all backend pods to force Kubernetes to create fresh ones
-      #         echo "Deleting faulty pods..."
-      #         kubectl delete pods -l app=backend -n default --force --grace-period=0
-              
-      #         # Wait for new pods to be created
-      #         echo "Waiting for fresh backend pods..."
-      #         sleep 10  # Give Kubernetes some time
-      #         kubectl get pods -n default
-      #       fi
-      #     fi
-
 
 
       - name: Wait for Backend Load Balancer IP
