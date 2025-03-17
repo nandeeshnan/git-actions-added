@@ -151,6 +151,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      - name: Check if EKS Cluster Exists
+        id: check-cluster
+        run: |
+          if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
+            echo "CLUSTER_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Initialize and Apply Terraform (Only if Cluster is Absent)
+        if: env.CLUSTER_EXISTS == 'false'
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve
+
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
@@ -161,27 +177,38 @@ jobs:
           kubectl apply -f dep-ser/secrets.yml
           kubectl apply -f dep-ser/backe.yml
 
-      - name: Wait for Deployment to Stabilize
+      - name: Wait for Backend Deployment
+        id: check-backend-deployment
         run: |
-          kubectl rollout status deployment backend -n default --timeout=120s
-
-      - name: Check Deployment Health
-        id: check-deployment
-        run: |
-          AVAILABLE_REPLICAS=$(kubectl get deployment backend -n default -o jsonpath='{.status.availableReplicas}')
-          if [[ "$AVAILABLE_REPLICAS" -lt 1 ]]; then
-            echo "Deployment failed. Rolling back..."
-            echo "ROLLBACK=true" >> $GITHUB_ENV
+          if ! kubectl rollout status deployment backend -n default --timeout=20s; then
+            echo "BACKEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
           else
-            echo "Deployment succeeded."
-            echo "ROLLBACK=false" >> $GITHUB_ENV
+            echo "BACKEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
           fi
 
-      - name: Rollback if Deployment Fails
-        if: env.ROLLBACK == 'true'
+      - name: Rollback Backend if Deployment Fails
+        if: env.BACKEND_DEPLOYMENT_FAILED == 'true'
         run: |
+          echo "Backend deployment failed! Rolling back..."
           kubectl rollout undo deployment backend -n default
-          kubectl rollout status deployment backend -n default --timeout=120s
+
+      - name: Wait for Backend Load Balancer IP
+        run: |
+          echo "Waiting for backend service to get an external IP..."
+          for i in {1..30}; do
+            BACKEND_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [[ ! -z "$BACKEND_IP" ]]; then
+              echo "Backend Load Balancer is available at: http://$BACKEND_IP:8000"
+              echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
+              break
+            fi
+            echo "Still waiting... ($i/30)"
+            sleep 10
+          done
+
+      - name: Update Frontend config.js with Backend IP
+        run: |
+          echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
 
       - name: Build and Push Updated Frontend Image
         run: |
@@ -192,30 +219,22 @@ jobs:
         run: |
           kubectl apply -f dep-ser/fb-dep.yml
 
-      - name: Wait for Frontend Deployment to Stabilize
+      - name: Wait for Frontend Deployment
+        id: check-frontend-deployment
         run: |
-          kubectl rollout status deployment frontend -n default --timeout=20s
-
-      - name: Check Frontend Deployment Health
-        id: check-frontend
-        run: |
-          AVAILABLE_REPLICAS=$(kubectl get deployment frontend -n default -o jsonpath='{.status.availableReplicas}')
-          if [[ "$AVAILABLE_REPLICAS" -lt 1 ]]; then
-            echo "Frontend deployment failed. Rolling back..."
-            echo "FRONTEND_ROLLBACK=true" >> $GITHUB_ENV
+          if ! kubectl rollout status deployment frontend -n default --timeout=20s; then
+            echo "FRONTEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
           else
-            echo "Frontend deployment succeeded."
-            echo "FRONTEND_ROLLBACK=false" >> $GITHUB_ENV
+            echo "FRONTEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
           fi
 
       - name: Rollback Frontend if Deployment Fails
-        if: env.FRONTEND_ROLLBACK == 'true'
+        if: env.FRONTEND_DEPLOYMENT_FAILED == 'true'
         run: |
+          echo "Frontend deployment failed! Rolling back..."
           kubectl rollout undo deployment frontend -n default
-          kubectl rollout status deployment frontend -n default --timeout=20s
 
       - name: Verify Deployment
         run: |
           kubectl get pods -o wide
           kubectl get svc
-
