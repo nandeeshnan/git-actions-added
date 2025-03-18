@@ -239,9 +239,9 @@ jobs:
         id: check-frontend-deployment
         run: |
           if ! kubectl rollout status deployment frontend -n default --timeout=20s; then
-            echo "FRONTEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
+            echo "FRONTEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
-            echo "FRONTEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
+            echo "FRONTEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
           fi
 
 
