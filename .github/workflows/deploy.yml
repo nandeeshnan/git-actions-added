@@ -197,9 +197,9 @@ jobs:
         id: check-backend-deployment
         run: |
           if ! kubectl rollout status deployment backend -n default --timeout=20s; then
-            echo "BACKEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
+            echo "BACKEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
-            echo "BACKEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
+            echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
           fi
 
       - name: Rollback Backend if Deployment Fails
