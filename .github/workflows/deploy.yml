@@ -143,6 +143,8 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest
+
+          
       - name: Test Backend Container Before Deployment
         run: |
           docker run -d --name backend_test -p 8000:8000 \
