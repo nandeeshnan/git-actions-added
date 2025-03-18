@@ -228,6 +228,7 @@ jobs:
             echo "FRONTEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
           fi
 
+
       - name: Rollback Frontend if Deployment Fails
         if: env.FRONTEND_DEPLOYMENT_FAILED == 'true'
         run: |
