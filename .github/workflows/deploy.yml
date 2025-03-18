@@ -139,12 +139,14 @@ jobs:
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+
       - name: Build and Push Backend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest
 
-          
+
+
       - name: Test Backend Container Before Deployment
         run: |
           docker run -d --name backend_test -p 8000:8000 \
@@ -169,6 +171,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+
       - name: Check if EKS Cluster Exists
         id: check-cluster
         run: |
@@ -178,6 +181,7 @@ jobs:
             echo "CLUSTER_EXISTS=false" >> $GITHUB_ENV
           fi
 
+
       - name: Initialize and Apply Terraform (Only if Cluster is Absent)
         if: env.CLUSTER_EXISTS == 'false'
         run: |
@@ -185,15 +189,21 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
+
+
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
           kubectl version --client
 
+
+
       - name: Deploy Backend Application to EKS
         run: |
           kubectl apply -f dep-ser/secrets.yml --record
           kubectl apply -f dep-ser/backe.yml --record
+
+
 
       - name: Wait for Backend Deployment
         id: check-backend-deployment
@@ -204,11 +214,15 @@ jobs:
             echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
           fi
 
+
+
       - name: Rollback Backend if Deployment Fails
         if: env.BACKEND_DEPLOYMENT_FAILED == 'true'
         run: |
           echo "Backend deployment failed! Rolling back..."
           kubectl rollout undo deployment backend -n default
+
+
 
       - name: Wait for Backend Load Balancer IP
         run: |
@@ -224,18 +238,24 @@ jobs:
             sleep 10
           done
 
+
       - name: Update Frontend config.js with Backend IP
         run: |
           echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
+
+
 
       - name: Build and Push Updated Frontend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe2:latest ./frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe2:latest
 
+
+
       - name: Deploy Frontend Application to EKS
         run: |
           kubectl apply -f dep-ser/fb-dep.yml --record
+
 
       - name: Wait for Frontend Deployment
         id: check-frontend-deployment
