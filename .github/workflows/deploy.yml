@@ -239,6 +239,7 @@ jobs:
           done
 
 
+
       - name: Update Frontend config.js with Backend IP
         run: |
           echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
