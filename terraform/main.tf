@@ -17,7 +17,6 @@ resource "aws_vpc" "eks_vpc" {
   }
 }
 
-# Create two public subnets in different AZs
 resource "aws_subnet" "eks_subnet_a" {
   vpc_id                  = aws_vpc.eks_vpc.id
   cidr_block              = "10.0.1.0/24"
