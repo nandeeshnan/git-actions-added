@@ -141,8 +141,8 @@ jobs:
 
       - name: Build and Push Updated Frontend Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe2:latest ./frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe2:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
 
 
 
