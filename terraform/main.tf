@@ -1,10 +1,8 @@
 provider "aws" {
-  region = "us-east-1"  # Adjust as needed
+  region = "us-east-1"  
 }
 
-###############################
-# VPC & Networking Resources  #
-###############################
+
 
 # Create a custom VPC
 resource "aws_vpc" "eks_vpc" {
@@ -73,9 +71,6 @@ resource "aws_route_table_association" "eks_rt_assoc_b" {
   route_table_id = aws_route_table.eks_rt.id
 }
 
-###############################
-# IAM Roles & Policies        #
-###############################
 
 # Check if IAM Role Exists for EKS Cluster
 data "aws_iam_role" "eks_cluster_role" {
@@ -155,9 +150,7 @@ resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
-###############################
-# EKS Cluster & Node Group    #
-###############################
+
 
 # Create the EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
@@ -192,9 +185,6 @@ resource "aws_eks_node_group" "eks_node_group" {
   depends_on = [aws_iam_role_policy_attachment.eks_node_policy_attach]
 }
 
-###############################
-# Outputs                     #
-###############################
 
 output "eks_cluster_name" {
   value = aws_eks_cluster.eks_cluster.name

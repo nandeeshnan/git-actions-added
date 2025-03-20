@@ -7,5 +7,4 @@ terraform/terraform.tfstate.backup
 .env
 *.env
 backend/.env
-frontend/.env
 terraform/.env

@@ -60,7 +60,6 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# Signup endpoint
 @router.post("/signup", response_model=Token)
 async def signup(user: UserCreate):
     async with async_session() as db:
@@ -71,7 +70,7 @@ async def signup(user: UserCreate):
         access_token = create_access_token(data={"sub": new_user.username})
         return {"access_token": access_token, "token_type": "bearer"}
 
-# Login endpoint
+
 @router.post("/login", response_model=Token)
 async def login(user: UserLogin):
     async with async_session() as db:
@@ -83,7 +82,7 @@ async def login(user: UserLogin):
         access_token = create_access_token(data={"sub": db_user.username})
         return {"access_token": access_token, "token_type": "bearer"}
 
-# Dependency to get current user based on JWT token
+
 from fastapi.security import OAuth2PasswordBearer
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

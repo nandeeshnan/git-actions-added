@@ -18,12 +18,12 @@ app.add_middleware(
 async def health_check():
     return {"status": "ok"}
 
-# Startup event: Create all database tables
+
 @app.on_event("startup")
 async def on_startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-# Include routers
+
 app.include_router(auth_router, prefix="/auth")
 app.include_router(api_router, prefix="/api")
