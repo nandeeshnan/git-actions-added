@@ -388,12 +388,13 @@ resource "aws_eks_node_group" "eks_node_group" {
 
 # Check if IAM Role Exists for AWS Load Balancer Controller
 data "aws_iam_role" "aws_load_balancer_controller_role" {
-  name = "aws-load-balancer-controller-role"
+  count = var.create_load_balancer_controller_role ? 0 : 1
+  name  = "aws-load-balancer-controller-role"
 }
 
 # Create IAM Role for AWS Load Balancer Controller only if it doesn't exist
 resource "aws_iam_role" "aws_load_balancer_controller_role" {
-  count = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? 0 : 1
+  count = var.create_load_balancer_controller_role ? 1 : 0
 
   name = "aws-load-balancer-controller-role"
 
@@ -415,7 +416,8 @@ resource "aws_iam_role" "aws_load_balancer_controller_role" {
 
 # Attach IAM Policies to AWS Load Balancer Controller Role
 resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_policy_attach" {
-  count      = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? 0 : 1
+  count = var.create_load_balancer_controller_role ? 1 : 0
+
   role       = aws_iam_role.aws_load_balancer_controller_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancerControllerPolicy"
 }
@@ -454,7 +456,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? data.aws_iam_role.aws_load_balancer_controller_role.arn : aws_iam_role.aws_load_balancer_controller_role[0].arn
+    value = var.create_load_balancer_controller_role ? aws_iam_role.aws_load_balancer_controller_role[0].arn : data.aws_iam_role.aws_load_balancer_controller_role[0].arn
   }
 
   depends_on = [aws_eks_node_group.eks_node_group]
@@ -466,7 +468,7 @@ resource "kubernetes_service_account" "aws_load_balancer_controller" {
     name      = "aws-load-balancer-controller"
     namespace = "kube-system"
     annotations = {
-      "eks.amazonaws.com/role-arn" = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? data.aws_iam_role.aws_load_balancer_controller_role.arn : aws_iam_role.aws_load_balancer_controller_role[0].arn
+      "eks.amazonaws.com/role-arn" = var.create_load_balancer_controller_role ? aws_iam_role.aws_load_balancer_controller_role[0].arn : data.aws_iam_role.aws_load_balancer_controller_role[0].arn
     }
   }
 
@@ -489,3 +491,10 @@ output "eks_vpc_id" {
 output "eks_subnet_ids" {
   value = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
 }
+
+# # Variable to control whether to create the IAM role
+# variable "create_load_balancer_controller_role" {
+#   description = "Whether to create the IAM role for the AWS Load Balancer Controller"
+#   type        = bool
+#   default     = true
+# }
