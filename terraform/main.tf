@@ -492,9 +492,9 @@ output "eks_subnet_ids" {
   value = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
 }
 
-# # Variable to control whether to create the IAM role
-# variable "create_load_balancer_controller_role" {
-#   description = "Whether to create the IAM role for the AWS Load Balancer Controller"
-#   type        = bool
-#   default     = true
-# }
+# Variable to control whether to create the IAM role
+variable "create_load_balancer_controller_role" {
+  description = "Whether to create the IAM role for the AWS Load Balancer Controller"
+  type        = bool
+  default     = true
+}
