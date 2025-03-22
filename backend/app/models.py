@@ -20,5 +20,6 @@ class SavedRecipe(Base):
     title = Column(String)
     image = Column(String)
     details = Column(Text) 
+    name= Column(Text)
     
     owner = relationship("User", back_populates="saved_recipes")
