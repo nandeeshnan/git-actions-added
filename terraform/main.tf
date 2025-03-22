@@ -275,8 +275,15 @@ resource "aws_route_table_association" "eks_rt_assoc_b" {
   route_table_id = aws_route_table.eks_rt.id
 }
 
-# IAM Role for EKS Cluster
+# Check if IAM Role Exists for EKS Cluster
+data "aws_iam_role" "eks_cluster_role" {
+  name = "eks-cluster-role"
+}
+
+# Create IAM Role for EKS Cluster only if it doesn't exist
 resource "aws_iam_role" "eks_cluster_role" {
+  count = length(data.aws_iam_role.eks_cluster_role.arn) > 0 ? 0 : 1
+
   name = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
@@ -294,13 +301,22 @@ resource "aws_iam_role" "eks_cluster_role" {
   }
 }
 
+# Attach IAM Policies to Cluster Role
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
-  role       = aws_iam_role.eks_cluster_role.name
+  count      = length(data.aws_iam_role.eks_cluster_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_cluster_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# IAM Role for EKS Node Group
+# Check if IAM Role Exists for EKS Node Group
+data "aws_iam_role" "eks_node_role" {
+  name = "eks-node-role"
+}
+
+# Create IAM Role for EKS Node Group only if it doesn't exist
 resource "aws_iam_role" "eks_node_role" {
+  count = length(data.aws_iam_role.eks_node_role.arn) > 0 ? 0 : 1
+
   name = "eks-node-role"
 
   assume_role_policy = jsonencode({
@@ -318,20 +334,34 @@ resource "aws_iam_role" "eks_node_role" {
   }
 }
 
+# Attach Policies to EKS Node Role
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
-  role       = aws_iam_role.eks_node_role.name
+  count      = length(data.aws_iam_role.eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
+  count      = length(data.aws_iam_role.eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
+  count      = length(data.aws_iam_role.eks_node_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.eks_node_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
 # Create the EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
   name     = "my-eks-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = length(data.aws_iam_role.eks_cluster_role.arn) > 0 ? data.aws_iam_role.eks_cluster_role.arn : aws_iam_role.eks_cluster_role[0].arn
   version  = "1.24"
 
   vpc_config {
-    subnet_ids             = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
-    endpoint_public_access = true
+    subnet_ids              = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
+    endpoint_public_access  = true
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_attach]
@@ -341,7 +371,7 @@ resource "aws_eks_cluster" "eks_cluster" {
 resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "my-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
+  node_role_arn   = length(data.aws_iam_role.eks_node_role.arn) > 0 ? data.aws_iam_role.eks_node_role.arn : aws_iam_role.eks_node_role[0].arn
   subnet_ids      = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
   instance_types  = ["t3.medium"]
 
@@ -356,35 +386,61 @@ resource "aws_eks_node_group" "eks_node_group" {
   depends_on = [aws_iam_role_policy_attachment.eks_node_policy_attach]
 }
 
-# Create IAM Role for ALB Ingress Controller
-resource "aws_iam_role" "alb_ingress_role" {
-  name = "alb-ingress-role"
+# Check if IAM Role Exists for AWS Load Balancer Controller
+data "aws_iam_role" "aws_load_balancer_controller_role" {
+  name = "aws-load-balancer-controller-role"
+}
+
+# Create IAM Role for AWS Load Balancer Controller only if it doesn't exist
+resource "aws_iam_role" "aws_load_balancer_controller_role" {
+  count = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? 0 : 1
+
+  name = "aws-load-balancer-controller-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "eks.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRoleWithWebIdentity",
+      Effect    = "Allow",
+      Principal = {
+        Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer, "https://", "")}"
+      }
     }]
   })
 
   tags = {
-    Name = "alb-ingress-role"
+    Name = "aws-load-balancer-controller-role"
   }
 }
 
-resource "aws_iam_role_policy_attachment" "alb_ingress_policy" {
-  role       = aws_iam_role.alb_ingress_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSLoadBalancerControllerIAMPolicy"
+# Attach IAM Policies to AWS Load Balancer Controller Role
+resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_policy_attach" {
+  count      = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? 0 : 1
+  role       = aws_iam_role.aws_load_balancer_controller_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSLoadBalancerControllerPolicy"
 }
 
-# Deploy ALB Ingress Controller using Helm
-resource "helm_release" "alb_ingress_controller" {
+# Get the current AWS account ID
+data "aws_caller_identity" "current" {}
+
+# Deploy the AWS Load Balancer Controller using Helm
+provider "helm" {
+  kubernetes {
+    host                   = aws_eks_cluster.eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = aws_eks_cluster.eks_cluster.name
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-  namespace  = "default"
+  namespace  = "kube-system"
 
   set {
     name  = "clusterName"
@@ -392,21 +448,29 @@ resource "helm_release" "alb_ingress_controller" {
   }
 
   set {
-    name  = "serviceAccount.create"
-    value = "true"
-  }
-
-  set {
     name  = "serviceAccount.name"
-    value = "alb-ingress-service-account"
+    value = "aws-load-balancer-controller"
   }
 
   set {
-    name  = "region"
-    value = "us-east-1"
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? data.aws_iam_role.aws_load_balancer_controller_role.arn : aws_iam_role.aws_load_balancer_controller_role[0].arn
   }
 
-  depends_on = [aws_eks_cluster.eks_cluster, aws_iam_role_policy_attachment.alb_ingress_policy]
+  depends_on = [aws_eks_node_group.eks_node_group]
+}
+
+# Create a Kubernetes Service Account for the AWS Load Balancer Controller
+resource "kubernetes_service_account" "aws_load_balancer_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = length(data.aws_iam_role.aws_load_balancer_controller_role.arn) > 0 ? data.aws_iam_role.aws_load_balancer_controller_role.arn : aws_iam_role.aws_load_balancer_controller_role[0].arn
+    }
+  }
+
+  depends_on = [aws_eks_node_group.eks_node_group]
 }
 
 # Outputs
