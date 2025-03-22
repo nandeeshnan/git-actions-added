@@ -46,6 +46,7 @@
 #   }
 # }
 
+
 # # Create a Route Table
 # resource "aws_route_table" "eks_rt" {
 #   vpc_id = aws_vpc.eks_vpc.id
@@ -204,7 +205,7 @@
 
 
 provider "aws" {
-  region = "us-east-1"  
+  region = "us-east-1"
 }
 
 # Create a custom VPC
@@ -218,7 +219,6 @@ resource "aws_vpc" "eks_vpc" {
   }
 }
 
-# Create two public subnets
 resource "aws_subnet" "eks_subnet_a" {
   vpc_id                  = aws_vpc.eks_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -275,7 +275,7 @@ resource "aws_route_table_association" "eks_rt_assoc_b" {
   route_table_id = aws_route_table.eks_rt.id
 }
 
-# Create IAM Role for EKS Cluster
+# IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
   name = "eks-cluster-role"
 
@@ -294,13 +294,12 @@ resource "aws_iam_role" "eks_cluster_role" {
   }
 }
 
-# Attach IAM Policies to Cluster Role
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy_attach" {
   role       = aws_iam_role.eks_cluster_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# Create IAM Role for EKS Node Group
+# IAM Role for EKS Node Group
 resource "aws_iam_role" "eks_node_role" {
   name = "eks-node-role"
 
@@ -319,20 +318,9 @@ resource "aws_iam_role" "eks_node_role" {
   }
 }
 
-# Attach Policies to EKS Node Role
 resource "aws_iam_role_policy_attachment" "eks_node_policy_attach" {
   role       = aws_iam_role.eks_node_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attach2" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_node_policy_attach3" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
 # Create the EKS Cluster
@@ -342,8 +330,8 @@ resource "aws_eks_cluster" "eks_cluster" {
   version  = "1.24"
 
   vpc_config {
-    subnet_ids              = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
-    endpoint_public_access  = true
+    subnet_ids             = [aws_subnet.eks_subnet_a.id, aws_subnet.eks_subnet_b.id]
+    endpoint_public_access = true
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy_attach]
@@ -368,47 +356,57 @@ resource "aws_eks_node_group" "eks_node_group" {
   depends_on = [aws_iam_role_policy_attachment.eks_node_policy_attach]
 }
 
-# ALB Ingress Controller IAM Role
-resource "aws_iam_policy" "alb_ingress_controller_policy" {
-  name        = "AWSLoadBalancerControllerIAMPolicy"
-  path        = "/"
-  description = "IAM policy for AWS Load Balancer Controller"
-  
-  policy = file("iam_policy.json")  # Use the AWS ALB policy JSON file
-}
-
-resource "aws_iam_role" "alb_ingress_controller_role" {
-  name = "alb-ingress-controller-role"
+# Create IAM Role for ALB Ingress Controller
+resource "aws_iam_role" "alb_ingress_role" {
+  name = "alb-ingress-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Action    = "sts:AssumeRole",
+      Effect = "Allow",
       Principal = { Service = "eks.amazonaws.com" },
-      Effect    = "Allow",
-      Sid       = ""
+      Action = "sts:AssumeRole"
     }]
   })
 
   tags = {
-    Name = "alb-ingress-controller-role"
+    Name = "alb-ingress-role"
   }
 }
 
-resource "aws_iam_role_policy_attachment" "alb_ingress_attach" {
-  role       = aws_iam_role.alb_ingress_controller_role.name
-  policy_arn = aws_iam_policy.alb_ingress_controller_policy.arn
+resource "aws_iam_role_policy_attachment" "alb_ingress_policy" {
+  role       = aws_iam_role.alb_ingress_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSLoadBalancerControllerIAMPolicy"
 }
 
-# Deploy AWS ALB Ingress Controller
-resource "null_resource" "install_alb_ingress" {
-  depends_on = [aws_eks_cluster.eks_cluster]
+# Deploy ALB Ingress Controller using Helm
+resource "helm_release" "alb_ingress_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "default"
 
-  provisioner "local-exec" {
-    command = <<EOT
-      kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/latest/download/v2_5_0_full.yaml
-    EOT
+  set {
+    name  = "clusterName"
+    value = aws_eks_cluster.eks_cluster.name
   }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "true"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "alb-ingress-service-account"
+  }
+
+  set {
+    name  = "region"
+    value = "us-east-1"
+  }
+
+  depends_on = [aws_eks_cluster.eks_cluster, aws_iam_role_policy_attachment.alb_ingress_policy]
 }
 
 # Outputs
