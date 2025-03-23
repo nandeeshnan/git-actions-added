@@ -17,6 +17,12 @@ spec:
           image: nandeesh151/frontend_recipe3
           ports:
             - containerPort: 80 
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: frontend-secrets  # Reference the new Secret
+                  key: api-key
 
 ---
 
