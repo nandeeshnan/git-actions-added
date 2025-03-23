@@ -355,7 +355,7 @@ jobs:
           set -e  # Exit immediately if any command fails
           echo "Deploying my-app..."
           helm upgrade --install my-app ./myhelm --namespace default \
-            --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe33 \
+            --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
             --set backend.image.tag=latest \
             --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
             --set frontend.image.tag=latest
@@ -364,16 +364,26 @@ jobs:
       - name: Verify Application Health
         id: health-check
         run: |
-          echo "Waiting for the application to become healthy..."
-          for i in {1..30}; do
-            if kubectl get pods -n default -l app=backend -o jsonpath='{.items[*].status.phase}' | grep -q "Running"; then
-              echo "Backend pod is running!"
-              exit 0
+          echo "Waiting for all backend pods to become healthy..."
+          for i in {1..10}; do
+            # Get the status of all backend pods
+            pod_statuses=$(kubectl get pods -n default -l app=backend -o jsonpath='{.items[*].status.phase}')
+            
+            # Check if all backend pods are running
+            if echo "$pod_statuses" | grep -q "Running"; then
+              # Check if any backend pod is in a failed state (e.g., ErrImagePull, CrashLoopBackOff)
+              if echo "$pod_statuses" | grep -v "Running"; then
+                echo "Some backend pods are in a failed state. Deployment failed!"
+                exit 1
+              else
+                echo "All backend pods are running and healthy!"
+                exit 0
+              fi
             fi
-            echo "Still waiting... ($i/30)"
+            echo "Still waiting... ($i/10)"
             sleep 1
           done
-          echo "Backend pod is not running. Deployment failed!"
+          echo "Backend pods did not become healthy within the timeout period. Deployment failed!"
           exit 1
 
       - name: Rollback on Failure
