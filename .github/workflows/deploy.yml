@@ -1,4 +1,179 @@
-name: Deploy to AWS EKS
+# name: Deploy to AWS EKS
+
+# on:
+#   push:
+#     branches:
+#       - main  
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Cache Terraform Binary
+#         id: cache-terraform
+#         uses: actions/cache@v4
+#         with:
+#           path: /usr/local/bin/terraform
+#           key: terraform-1.5.5
+
+#       - name: Install Terraform (if not cached)
+#         if: steps.cache-terraform.outputs.cache-hit != 'true'
+#         run: |
+#           sudo apt-get update && sudo apt-get install -y unzip curl
+#           curl -fsSL -o terraform.zip https://releases.hashicorp.com/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip
+#           unzip -o terraform.zip -d /usr/local/bin/
+#           chmod +x /usr/local/bin/terraform
+#           terraform --version
+
+#       - name: Login to Docker Hub
+#         run: |
+#           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+
+#       - name: Build and Push Backend Image
+#         run: |
+#           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest ./backend
+#           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest
+
+
+
+#       - name: Test Backend Container Before Deployment
+#         run: |
+#           docker run -d --name backend_test -p 8000:8000 \
+#             -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+#             ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest
+#           sleep 10  
+#           if curl -s http://localhost:8000/health | grep "ok"; then
+#             echo "Backend container test passed!"
+#             docker stop backend_test && docker rm backend_test
+#           else
+#             echo "Backend container test failed!"
+#             docker logs backend_test
+#             docker stop backend_test && docker rm backend_test
+#             exit 1
+#           fi
+
+
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v2
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: us-east-1
+
+
+#       - name: Check if EKS Cluster Exists
+#         id: check-cluster
+#         run: |
+#           if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
+#             echo "CLUSTER_EXISTS=true" > $GITHUB_ENV
+#           else
+#             echo "CLUSTER_EXISTS=false" > $GITHUB_ENV
+#           fi
+
+
+#       - name: Initialize and Apply Terraform (Only if Cluster is Absent)
+#         if: env.CLUSTER_EXISTS == 'false'
+#         run: |
+#           cd terraform
+#           terraform init
+#           terraform apply -auto-approve
+
+
+
+#       - name: Configure kubectl
+#         run: |
+#           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+#           kubectl version --client
+
+
+
+#       - name: Deploy Backend Application to EKS
+#         run: |
+#           kubectl apply -f dep-ser/secrets.yml --record
+#           kubectl apply -f dep-ser/backe.yml --record
+#           kubectl apply -f dep-ser/ingress.yml --record
+
+
+#       - name: Wait for Backend Deployment
+#         id: check-backend-deployment
+#         run: |
+#           if ! kubectl rollout status deployment backend -n default --timeout=20s; then
+#             echo "BACKEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
+#           else
+#             echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
+#           fi
+
+
+
+#       - name: Rollback Backend if Deployment Fails
+#         if: env.BACKEND_DEPLOYMENT_FAILED == 'true'
+#         run: |
+#           echo "Backend deployment failed! Rolling back..."
+#           kubectl rollout undo deployment backend -n default
+
+
+
+#       - name: Wait for Backend Load Balancer IP
+#         run: |
+#           echo "Waiting for backend service to get an external IP..."
+#           for i in {1..30}; do
+#             BACKEND_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+#             if [[ ! -z "$BACKEND_IP" ]]; then
+#               echo "Backend Load Balancer is available at: http://$BACKEND_IP:8000"
+#               echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
+#               break
+#             fi
+#             echo "Still waiting... ($i/30)"
+#             sleep 10
+#           done
+
+
+
+#       - name: Update Frontend config.js with Backend IP
+#         run: |
+#           echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
+
+
+
+#       - name: Build and Push Updated Frontend Image
+#         run: |
+#           docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
+#           docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
+
+
+
+#       - name: Deploy Frontend Application to EKS
+#         run: |
+#           kubectl apply -f dep-ser/fb-dep.yml --record
+
+
+#       - name: Wait for Frontend Deployment
+#         id: check-frontend-deployment
+#         run: |
+#           if ! kubectl rollout status deployment frontend -n default --timeout=20s; then
+#             echo "FRONTEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
+#           else
+#             echo "FRONTEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
+#           fi
+
+
+#       - name: Rollback Frontend if Deployment Fails
+#         if: env.FRONTEND_DEPLOYMENT_FAILED == 'true'
+#         run: |
+#           echo "Frontend deployment failed! Rolling back..."
+#           kubectl rollout undo deployment frontend -n default
+
+#       - name: Verify Deployment
+#         run: |
+#           kubectl get pods -o wide
+#           kubectl get svc
+
+
+name: Deploy to AWS EKS using Helm
 
 on:
   push:
@@ -32,13 +207,11 @@ jobs:
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-
+      ### Backend Image Build and Push
       - name: Build and Push Backend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest
-
-
 
       - name: Test Backend Container Before Deployment
         run: |
@@ -56,6 +229,11 @@ jobs:
             exit 1
           fi
 
+      ### Frontend Image Build and Push
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -63,7 +241,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-
 
       - name: Check if EKS Cluster Exists
         id: check-cluster
@@ -74,7 +251,6 @@ jobs:
             echo "CLUSTER_EXISTS=false" > $GITHUB_ENV
           fi
 
-
       - name: Initialize and Apply Terraform (Only if Cluster is Absent)
         if: env.CLUSTER_EXISTS == 'false'
         run: |
@@ -82,90 +258,20 @@ jobs:
           terraform init
           terraform apply -auto-approve
 
-
+      - name: Install Helm
+        run: |
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
 
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
           kubectl version --client
 
-
-
-      - name: Deploy Backend Application to EKS
+      - name: Deploy Application using Helm
         run: |
-          kubectl apply -f dep-ser/secrets.yml --record
-          kubectl apply -f dep-ser/backe.yml --record
-          kubectl apply -f dep-ser/ingress.yml --record
-
-
-      - name: Wait for Backend Deployment
-        id: check-backend-deployment
-        run: |
-          if ! kubectl rollout status deployment backend -n default --timeout=20s; then
-            echo "BACKEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
-          else
-            echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
-          fi
-
-
-
-      - name: Rollback Backend if Deployment Fails
-        if: env.BACKEND_DEPLOYMENT_FAILED == 'true'
-        run: |
-          echo "Backend deployment failed! Rolling back..."
-          kubectl rollout undo deployment backend -n default
-
-
-
-      - name: Wait for Backend Load Balancer IP
-        run: |
-          echo "Waiting for backend service to get an external IP..."
-          for i in {1..30}; do
-            BACKEND_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [[ ! -z "$BACKEND_IP" ]]; then
-              echo "Backend Load Balancer is available at: http://$BACKEND_IP:8000"
-              echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
-              break
-            fi
-            echo "Still waiting... ($i/30)"
-            sleep 10
-          done
-
-
-
-      - name: Update Frontend config.js with Backend IP
-        run: |
-          echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
-
-
-
-      - name: Build and Push Updated Frontend Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
-
-
-
-      - name: Deploy Frontend Application to EKS
-        run: |
-          kubectl apply -f dep-ser/fb-dep.yml --record
-
-
-      - name: Wait for Frontend Deployment
-        id: check-frontend-deployment
-        run: |
-          if ! kubectl rollout status deployment frontend -n default --timeout=20s; then
-            echo "FRONTEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
-          else
-            echo "FRONTEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
-          fi
-
-
-      - name: Rollback Frontend if Deployment Fails
-        if: env.FRONTEND_DEPLOYMENT_FAILED == 'true'
-        run: |
-          echo "Frontend deployment failed! Rolling back..."
-          kubectl rollout undo deployment frontend -n default
+          helm upgrade --install my-app ./cloud --namespace default
 
       - name: Verify Deployment
         run: |
