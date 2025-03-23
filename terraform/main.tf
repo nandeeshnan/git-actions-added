@@ -221,12 +221,18 @@ data "aws_subnet" "existing_subnets" {
 
 # Use the existing route table
 data "aws_route_table" "existing_route_table" {
-  id = var.route_table_id
+  filter {
+    name   = "route-table-id"
+    values = [var.route_table_id]
+  }
 }
 
 # Use the existing internet gateway
 data "aws_internet_gateway" "existing_igw" {
-  id = var.internet_gateway_id
+  filter {
+    name   = "internet-gateway-id"
+    values = [var.internet_gateway_id]
+  }
 }
 
 # Check if IAM Role Exists for EKS Cluster
