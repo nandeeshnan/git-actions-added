@@ -360,7 +360,7 @@ jobs:
 
       ### Rollback if Deployment Fails
       - name: Rollback on Failure
-        if: failure() && steps.helm-deploy.outcome == 'failure'
+        if: failure()  # Trigger on any failure in the pipeline
         run: |
           echo "Helm deployment failed. Rolling back to the previous release..."
           helm rollback my-app 0 --namespace default
