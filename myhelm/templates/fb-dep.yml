@@ -17,10 +17,8 @@ spec:
           image: nandeesh151/frontend_recipe3
           ports:
             - containerPort: 80 
-         
 
 ---
-
 
 
 apiVersion: v1
