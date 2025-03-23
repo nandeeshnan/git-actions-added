@@ -18,10 +18,10 @@ spec:
                 name: frontend  # Replace with your frontend service name
                 port:
                   number: 80
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: backend  # Replace with your backend service name
-                port:
-                  number: 8000
+          # - path: /api
+          #   pathType: Prefix
+          #   backend:
+          #     service:
+          #       name: backend  # Replace with your backend service name
+          #       port:
+          #         number: 8000
