@@ -310,7 +310,6 @@ jobs:
             --set image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
             --set image.tag=latest
 
-
       - name: Verify Deployment
         run: |
           kubectl get pods -o wide
