@@ -355,7 +355,7 @@ jobs:
           set -e  # Exit immediately if any command fails
           echo "Deploying my-app..."
           helm upgrade --install my-app ./myhelm --namespace default \
-            --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
+            --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe33 \
             --set backend.image.tag=latest \
             --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
             --set frontend.image.tag=latest
@@ -371,7 +371,7 @@ jobs:
               exit 0
             fi
             echo "Still waiting... ($i/30)"
-            sleep 10
+            sleep 1
           done
           echo "Backend pod is not running. Deployment failed!"
           exit 1
