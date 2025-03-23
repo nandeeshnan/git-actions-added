@@ -256,7 +256,7 @@ jobs:
       ### Deploy All Applications using Helm
       - name: Deploy Applications using Helm
         run: |
-          helm upgrade --install my-app ./cloud --namespace default \
+          helm upgrade --install my-app ./myhelm --namespace default \
             --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
             --set backend.image.tag=latest \
             --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
