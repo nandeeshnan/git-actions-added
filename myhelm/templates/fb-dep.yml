@@ -20,20 +20,32 @@ spec:
 
 ---
 
-
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  
-    service.beta.kubernetes.io/aws-load-balancer-target-type: "instance"  
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"  
+  namespace: default
 spec:
+  type: ClusterIP  # Change this to ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
   selector:
     app: frontend
-  ports:
-    - protocol: TCP
-      port: 80  
-      targetPort: 80 
-  type: LoadBalancer
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: frontend
+#   annotations:
+#     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  
+#     service.beta.kubernetes.io/aws-load-balancer-target-type: "instance"  
+#     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"  
+# spec:
+#   selector:
+#     app: frontend
+#   ports:
+#     - protocol: TCP
+#       port: 80  
+#       targetPort: 80 
+#   type: LoadBalancer
