@@ -371,10 +371,20 @@ jobs:
             echo "BACKEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
           fi
 
-      - name: Rollback on Failure
-        if: env.BACKEND_DEPLOYMENT_FAILED == 'true'
+      - name: Check Frontend Deployment Status
+        id: check-frontend
         run: |
-          echo "Backend deployment failed. Rolling back to the previous release..."
+          echo "Checking frontend deployment status..."
+          if ! kubectl rollout status deployment frontend -n default --timeout=60s; then
+            echo "FRONTEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
+          else
+            echo "FRONTEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Rollback on Failure
+        if: env.BACKEND_DEPLOYMENT_FAILED == 'true' || env.FRONTEND_DEPLOYMENT_FAILED == 'true'
+        run: |
+          echo "Deployment failed. Rolling back to the previous release..."
           helm rollback my-app 0 --namespace default
 
       - name: Debug Pod Status
