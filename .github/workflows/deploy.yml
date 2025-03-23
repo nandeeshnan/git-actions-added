@@ -352,20 +352,37 @@ jobs:
       - name: Deploy Applications using Helm
         id: helm-deploy
         run: |
+          set -e  # Exit immediately if any command fails
+          echo "Deploying my-app..."
           helm upgrade --install my-app ./myhelm --namespace default \
             --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
             --set backend.image.tag=latest \
-            --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe33 \
+            --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
             --set frontend.image.tag=latest
+          echo "Deployment completed successfully."
 
-      ### Rollback if Deployment Fails
+      - name: Verify Application Health
+        id: health-check
+        run: |
+          echo "Waiting for the application to become healthy..."
+          for i in {1..30}; do
+            if kubectl get pods -n default -l app=backend -o jsonpath='{.items[*].status.phase}' | grep -q "Running"; then
+              echo "Backend pod is running!"
+              exit 0
+            fi
+            echo "Still waiting... ($i/30)"
+            sleep 10
+          done
+          echo "Backend pod is not running. Deployment failed!"
+          exit 1
+
       - name: Rollback on Failure
         if: failure()  # Trigger on any failure in the pipeline
         run: |
           echo "Helm deployment failed. Rolling back to the previous release..."
           helm rollback my-app 0 --namespace default
 
-      - name: Verify Deployment
+      - name: Debug Pod Status
         run: |
-          kubectl get pods -o wide
-          kubectl get svc
+          echo "Checking pod status..."
+          kubectl get pods -n default -o wide
