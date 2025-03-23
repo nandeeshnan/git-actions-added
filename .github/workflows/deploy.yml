@@ -173,6 +173,101 @@
 #           kubectl get svc
 
 
+# name: Deploy to AWS EKS using Helm
+
+# on:
+#   push:
+#     branches:
+#       - main  
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
+
+#       - name: Cache Terraform Binary
+#         id: cache-terraform
+#         uses: actions/cache@v4
+#         with:
+#           path: /usr/local/bin/terraform
+#           key: terraform-1.5.5
+
+#       - name: Install Terraform (if not cached)
+#         if: steps.cache-terraform.outputs.cache-hit != 'true'
+#         run: |
+#           sudo apt-get update && sudo apt-get install -y unzip curl
+#           curl -fsSL -o terraform.zip https://releases.hashicorp.com/terraform/1.5.5/terraform_1.5.5_linux_amd64.zip
+#           unzip -o terraform.zip -d /usr/local/bin/
+#           chmod +x /usr/local/bin/terraform
+#           terraform --version
+
+#       - name: Login to Docker Hub
+#         run: |
+#           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+#       ### Backend Image Build and Push
+#       - name: Build and Push Backend Image
+#         run: |
+#           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest ./backend
+#           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest
+
+#       ### Frontend Image Build and Push
+#       - name: Build and Push Frontend Image
+#         run: |
+#           docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
+#           docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
+
+#       - name: Configure AWS Credentials
+#         uses: aws-actions/configure-aws-credentials@v2
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: us-east-1
+
+#       - name: Check if EKS Cluster Exists
+#         id: check-cluster
+#         run: |
+#           if aws eks describe-cluster --name my-eks-cluster --region us-east-1 > /dev/null 2>&1; then
+#             echo "CLUSTER_EXISTS=true" > $GITHUB_ENV
+#           else
+#             echo "CLUSTER_EXISTS=false" > $GITHUB_ENV
+#           fi
+
+#       - name: Initialize and Apply Terraform (Only if Cluster is Absent)
+#         if: env.CLUSTER_EXISTS == 'false'
+#         run: |
+#           cd terraform
+#           terraform init
+#           terraform apply -auto-approve
+
+#       - name: Install Helm
+#         run: |
+#           curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+#           chmod 700 get_helm.sh
+#           ./get_helm.sh
+
+#       - name: Configure kubectl
+#         run: |
+#           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
+#           kubectl version --client
+
+#       ### Deploy All Applications using Helm
+#       - name: Deploy Applications using Helm
+#         run: |
+#           helm upgrade --install my-app ./myhelm --namespace default \
+#             --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
+#             --set backend.image.tag=latest \
+#             --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
+#             --set frontend.image.tag=latest
+
+#       - name: Verify Deployment
+#         run: |
+#           kubectl get pods -o wide
+#           kubectl get svc
+
+
 name: Deploy to AWS EKS using Helm
 
 on:
@@ -255,12 +350,20 @@ jobs:
 
       ### Deploy All Applications using Helm
       - name: Deploy Applications using Helm
+        id: helm-deploy
         run: |
           helm upgrade --install my-app ./myhelm --namespace default \
             --set backend.image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
             --set backend.image.tag=latest \
             --set frontend.image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
             --set frontend.image.tag=latest
+
+      ### Rollback if Deployment Fails
+      - name: Rollback on Failure
+        if: failure() && steps.helm-deploy.outcome == 'failure'
+        run: |
+          echo "Helm deployment failed. Rolling back to the previous release..."
+          helm rollback my-app 0 --namespace default
 
       - name: Verify Deployment
         run: |
