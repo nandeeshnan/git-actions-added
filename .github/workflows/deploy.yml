@@ -269,9 +269,46 @@ jobs:
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
           kubectl version --client
 
-      - name: Deploy Application using Helm
+      ### Deploy Backend Application using Helm
+      - name: Deploy Backend Application using Helm
         run: |
-          helm upgrade --install my-app ./cloud --namespace default
+          helm upgrade --install backend ./cloud --namespace default \
+            --set image.repository=${{ secrets.DOCKER_USERNAME }}/backend_recipe3 \
+            --set image.tag=latest
+
+      ### Wait for Backend Load Balancer IP
+      - name: Wait for Backend Load Balancer IP
+        id: get-backend-ip
+        run: |
+          echo "Waiting for backend service to get an external IP..."
+          for i in {1..30}; do
+            BACKEND_IP=$(kubectl get svc backend -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [[ ! -z "$BACKEND_IP" ]]; then
+              echo "Backend Load Balancer is available at: http://$BACKEND_IP:8000"
+              echo "BACKEND_IP=$BACKEND_IP" >> $GITHUB_ENV
+              break
+            fi
+            echo "Still waiting... ($i/30)"
+            sleep 10
+          done
+
+      ### Update Frontend Configuration with Backend IP
+      - name: Update Frontend Configuration with Backend IP
+        run: |
+          echo "Updating frontend configuration with backend IP: $BACKEND_IP"
+          echo "window.BACKEND_URL = 'http://$BACKEND_IP:8000';" > frontend/config.js
+
+      ### Rebuild and Redeploy Frontend
+      - name: Build and Push Updated Frontend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
+
+      - name: Deploy Frontend Application using Helm
+        run: |
+          helm upgrade --install frontend ./cloud --namespace default \
+            --set image.repository=${{ secrets.DOCKER_USERNAME }}/frontend_recipe3 \
+            --set image.tag=latest
 
       - name: Verify Deployment
         run: |

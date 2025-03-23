@@ -1,0 +1,1 @@
+window.BACKEND_URL = 'http://aabe3f14f8d234fa48bd5dfdb13cabba-944605425.us-east-1.elb.amazonaws.com:8000';
