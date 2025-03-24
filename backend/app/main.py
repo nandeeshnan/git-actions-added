@@ -9,8 +9,8 @@ import api
 app = FastAPI()
 
 origins = [
-    "http://recipe.sigmoid.io",  # Your frontend
-    "http://localhost:3000",     # If testing locally
+    "http://recipe.sigmoid.io", 
+    "http://localhost:3000",     
 ]
 
 

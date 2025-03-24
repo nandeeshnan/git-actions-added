@@ -57,13 +57,9 @@ metadata:
   name: my-app-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disable HTTPS redirection
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  # Use HTTP for backend communication
+    # nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disable HTTPS redirection
+    # nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  # Use HTTP for backend communication
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://recipe.sigmoid.io"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
-    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
 spec:
   ingressClassName: nginx 
   rules:
