@@ -65,7 +65,7 @@ spec:
     - host: demo-recipe.com
       http:
         paths:
-          - path: /
+          - path: /api
             pathType: Prefix
             backend:
               service:
