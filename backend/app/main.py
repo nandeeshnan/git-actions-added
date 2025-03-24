@@ -8,10 +8,10 @@ import api
 
 app = FastAPI()
 
-origins = [
-    "http://recipe.sigmoid.io", 
-    "http://localhost:3000",     
-]
+# origins = [
+#     "http://recipe.sigmoid.io", 
+#     "http://localhost:3000",     
+# ]
 
 
 app.add_middleware(

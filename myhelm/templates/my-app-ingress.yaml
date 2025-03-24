@@ -34,9 +34,7 @@ kind: Ingress
 metadata:
   name: my-app-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    # nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disable HTTPS redirection
-    # nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  # Use HTTP for backend communication
+    # nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
   ingressClassName: nginx 
