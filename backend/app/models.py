@@ -19,7 +19,6 @@ class SavedRecipe(Base):
     recipe_id = Column(Integer) 
     title = Column(String)
     image = Column(String)
-    details = Column(Text) 
-    name= Column(Text)
+    details = Column(Text)
     
     owner = relationship("User", back_populates="saved_recipes")
