@@ -365,7 +365,7 @@ jobs:
         id: check-backend
         run: |
           echo "Checking backend deployment status..."
-          if ! kubectl rollout status deployment backend -n default --timeout=60s; then
+          if ! kubectl rollout status deployment backend -n default --timeout=10s; then
             echo "BACKEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
             echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
@@ -375,7 +375,7 @@ jobs:
         id: check-frontend
         run: |
           echo "Checking frontend deployment status..."
-          if ! kubectl rollout status deployment frontend -n default --timeout=60s; then
+          if ! kubectl rollout status deployment frontend -n default --timeout=10s; then
             echo "FRONTEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
             echo "FRONTEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
