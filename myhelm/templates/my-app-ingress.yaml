@@ -56,6 +56,7 @@ kind: Ingress
 metadata:
   name: my-app-ingress
   annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disable HTTPS redirection
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  # Use HTTP for backend communication
 spec:
@@ -64,14 +65,14 @@ spec:
     - host: demo-recipe.com
       http:
         paths:
-          - path: /backend
+          - path: /
             pathType: Prefix
             backend:
               service:
                 name: backend
                 port:
                   number: 8000
-          - path: /frontend
+          - path: /
             pathType: Prefix
             backend:
               service:
