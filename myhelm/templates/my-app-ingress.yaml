@@ -1,3 +1,33 @@
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: my-app-ingress
+#   namespace: default
+#   annotations:
+#     nginx.ingress.kubernetes.io/rewrite-target: /
+# spec:
+#   ingressClassName: nginx 
+#   rules:
+#     - host: my-app.example.com  # Replace with your domain
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: frontend  # Replace with your frontend service name
+#                 port:
+#                   number: 80
+#           # - path: /api
+#           #   pathType: Prefix
+#           #   backend:
+#           #     service:
+#           #       name: backend  # Replace with your backend service name
+#           #       port:
+#           #         number: 8000
+
+
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -5,6 +35,11 @@ metadata:
   namespace: default
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* \.(env|config|yaml|yml|ini|log|bak|json|xml)$ {
+          deny all;
+          return 403;
+      }
 spec:
   ingressClassName: nginx 
   rules:
