@@ -62,7 +62,7 @@ metadata:
 spec:
   ingressClassName: nginx 
   rules:
-    - host: demo-recipe.com
+    - host: ""
       http:
         paths:
           - path: /api
