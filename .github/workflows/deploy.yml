@@ -302,13 +302,13 @@ jobs:
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      ### Backend Image Build and Push
+     
       - name: Build and Push Backend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest ./backend
           docker push ${{ secrets.DOCKER_USERNAME }}/backend_recipe3:latest
 
-      ### Frontend Image Build and Push
+     
       - name: Build and Push Frontend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
@@ -348,7 +348,7 @@ jobs:
           aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster
           kubectl version --client
 
-      ### Deploy All Applications using Helm
+      
       - name: Deploy Applications using Helm
         id: helm-deploy
         run: |
@@ -366,9 +366,9 @@ jobs:
         run: |
           echo "Checking backend deployment status..."
           if ! kubectl rollout status deployment backend -n default --timeout=60s; then
-            echo "BACKEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
+            echo "BACKEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
-            echo "BACKEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
+            echo "BACKEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
           fi
 
       - name: Check Frontend Deployment Status
@@ -376,9 +376,9 @@ jobs:
         run: |
           echo "Checking frontend deployment status..."
           if ! kubectl rollout status deployment frontend -n default --timeout=60s; then
-            echo "FRONTEND_DEPLOYMENT_FAILED=true" >> $GITHUB_ENV
+            echo "FRONTEND_DEPLOYMENT_FAILED=true" > $GITHUB_ENV
           else
-            echo "FRONTEND_DEPLOYMENT_FAILED=false" >> $GITHUB_ENV
+            echo "FRONTEND_DEPLOYMENT_FAILED=false" > $GITHUB_ENV
           fi
 
       - name: Rollback on Failure
