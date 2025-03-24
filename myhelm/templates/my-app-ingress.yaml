@@ -1,3 +1,33 @@
+# # apiVersion: networking.k8s.io/v1
+# # kind: Ingress
+# # metadata:
+# #   name: my-app-ingress
+# #   namespace: default
+# #   annotations:
+# #     nginx.ingress.kubernetes.io/rewrite-target: /
+# # spec:
+# #   ingressClassName: nginx 
+# #   rules:
+# #     - host: my-app.example.com  # Replace with your domain
+# #       http:
+# #         paths:
+# #           - path: /
+# #             pathType: Prefix
+# #             backend:
+# #               service:
+# #                 name: frontend  # Replace with your frontend service name
+# #                 port:
+# #                   number: 80
+# #           # - path: /api
+# #           #   pathType: Prefix
+# #           #   backend:
+# #           #     service:
+# #           #       name: backend  # Replace with your backend service name
+# #           #       port:
+# #           #         number: 8000
+
+
+
 # apiVersion: networking.k8s.io/v1
 # kind: Ingress
 # metadata:
@@ -6,47 +36,45 @@
 #   annotations:
 #     nginx.ingress.kubernetes.io/rewrite-target: /
 # spec:
-#   ingressClassName: nginx 
+#   ingressClassName: nginx
 #   rules:
-#     - host: my-app.example.com  # Replace with your domain
+#     - host: my-app.example.com
 #       http:
 #         paths:
 #           - path: /
 #             pathType: Prefix
 #             backend:
 #               service:
-#                 name: frontend  # Replace with your frontend service name
+#                 name: frontend
 #                 port:
 #                   number: 80
-#           # - path: /api
-#           #   pathType: Prefix
-#           #   backend:
-#           #     service:
-#           #       name: backend  # Replace with your backend service name
-#           #       port:
-#           #         number: 8000
-
-
+#             # Block access to sensitive files
+  
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: my-app-ingress
-  namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Disable HTTPS redirection
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"  # Use HTTP for backend communication
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx 
   rules:
-    - host: my-app.example.com
+    - host: demo-recipe.com
       http:
         paths:
-          - path: /
+          - path: /backend
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          - path: /frontend
             pathType: Prefix
             backend:
               service:
                 name: frontend
                 port:
                   number: 80
-            # Block access to sensitive files
-  
