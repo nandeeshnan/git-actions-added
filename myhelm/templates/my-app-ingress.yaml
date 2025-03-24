@@ -49,9 +49,4 @@ spec:
                 port:
                   number: 80
             # Block access to sensitive files
-            annotations:
-              nginx.ingress.kubernetes.io/configuration-snippet: |
-                location ~* \.(env|config|yaml|yml|ini|log|bak|json|xml)$ {
-                    deny all;
-                    return 403;
-                }
+  
