@@ -7,6 +7,13 @@ import api
 
 
 app = FastAPI()
+
+origins = [
+    "http://recipe.sigmoid.io",  # Your frontend
+    "http://localhost:3000",     # If testing locally
+]
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
