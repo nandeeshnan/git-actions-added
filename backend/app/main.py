@@ -32,5 +32,6 @@ async def on_startup():
         await conn.run_sync(Base.metadata.create_all)
 
 
+
 app.include_router(auth_router, prefix="/auth")
 app.include_router(api_router, prefix="/api")
