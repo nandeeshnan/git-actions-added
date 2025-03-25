@@ -274,6 +274,8 @@ on:
   push:
     branches:
       - main  
+      - dev
+      - feature
 
 jobs:
   deploy:
@@ -314,6 +316,22 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest ./frontend
           docker push ${{ secrets.DOCKER_USERNAME }}/frontend_recipe3:latest
 
+
+      - name: Test Backend Container Before Deployment
+        run: |
+          docker run -d --name backend_test -p 8000:8000 \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            ${{ secrets.DOCKER_USERNAME }}/backend_recipe2:latest
+          sleep 10  
+          if curl -s http://localhost:8000/health | grep "ok"; then
+            echo "Backend container test passed!"
+            docker stop backend_test && docker rm backend_test
+          else
+            echo "Backend container test failed!"
+            docker logs backend_test
+            docker stop backend_test && docker rm backend_test
+            exit 1
+          fi
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
