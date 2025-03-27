@@ -13,6 +13,7 @@ app = FastAPI()
 #     "http://localhost:3000",     
 # ]
 
+app.add_middleware(HTTPSRedirectMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
