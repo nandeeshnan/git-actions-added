@@ -71,7 +71,7 @@ spec:
     - recipe.sigmoid.io
     secretName: my-app-tls 
   rules:
-  - host: recipe.sigmoid.io
+  - host: ""
     http:
       paths:
       - path: /
