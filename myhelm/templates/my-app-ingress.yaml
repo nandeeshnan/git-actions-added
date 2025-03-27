@@ -90,7 +90,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod  # Automatic TLS certs
     nginx.ingress.kubernetes.io/ssl-redirect: "true"   # Force HTTPS
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/enable-cors: "true"    # CORS support
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"  # Adjust payload size
 spec:
