@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: nandeesh151/frontend_recipe33
+          image: nandeesh151/frontend_recipe3
           ports:
             - containerPort: 80 
 
