@@ -33,9 +33,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (storedResults) {
       displayRecipes(JSON.parse(storedResults));
     } 
-    // else {
-    //   fetchTrendingRecipes();
-    // }
   } else if (path.endsWith('saved.html')) {
     fetchSavedRecipes();
   }
@@ -237,6 +234,66 @@ async function deleteSaved(savedId) {
     alert(error.message);
   }
 }
+
+
+// Add these functions to your existing script.js
+
+// Email Signup Flow
+document.getElementById('emailSignupBtn').addEventListener('click', () => {
+  $('#emailModal').modal('show');
+});
+
+// Email Form Submission
+document.getElementById('emailForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  
+  try {
+    const response = await fetch(window.BACKEND_URL + '/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    if (response.ok) {
+      document.getElementById('emailForm').style.display = 'none';
+      document.getElementById('otpForm').style.display = 'block';
+    } else if (response.status === 409) {
+      alert('Email already exists. Please login instead.');
+    } else {
+      throw new Error('Failed to send verification code');
+    }
+  } catch (error) {
+    console.error('Email error:', error);
+    alert(error.message);
+  }
+});
+
+// OTP Verification
+document.getElementById('otpForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const otp = document.getElementById('otp').value;
+
+  try {
+    const response = await fetch(window.BACKEND_URL + '/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+
+    if (response.ok) {
+      $('#emailModal').modal('hide');
+      // Redirect to signup page with verified email as parameter
+      window.location.href = `signup.html?email=${encodeURIComponent(email)}`;
+    } else {
+      throw new Error('Invalid verification code or code expired');
+    }
+  } catch (error) {
+    console.error('Verification error:', error);
+    alert(error.message);
+  }
+});
 
 function logoutHandler() {
   localStorage.removeItem('token');

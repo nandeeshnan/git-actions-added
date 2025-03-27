@@ -4,7 +4,7 @@ from api import router as api_router
 from auth import router as auth_router
 from database import engine, Base
 import api
-
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware 
 
 app = FastAPI()
 
@@ -13,6 +13,8 @@ app = FastAPI()
 #     "http://localhost:3000",     
 # ]
 
+
+# app.add_middleware(HTTPSRedirectMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
