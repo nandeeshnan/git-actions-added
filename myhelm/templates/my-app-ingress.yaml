@@ -116,5 +116,12 @@ spec:
           service:
             name: backend  # Your backend service
             port:
-              number: 8000  # Backend should support HTTPS
+              number: 8000
+      - path: /api/
+        pathType: Prefix
+        backend:
+          service:
+            name: backend  # Your backend service
+            port:
+              number: 8000   # Backend should support HTTPS
 
