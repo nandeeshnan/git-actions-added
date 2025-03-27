@@ -11,6 +11,7 @@ class User(Base):
     
     saved_recipes = relationship("SavedRecipe", back_populates="owner")
 
+
 class SavedRecipe(Base):
     __tablename__ = "saved_recipes"
     

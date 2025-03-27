@@ -34,21 +34,18 @@ kind: Ingress
 metadata:
   name: my-app-ingress
   annotations:
-    # nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
+  tls:
+  - hosts:
+    - recipe.sigmoid.io
+    secretName: recipe.sigmoid.io-tls
   ingressClassName: nginx 
   rules:
     - host: ""
       http:
         paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: backend
-                port:
-                  number: 8000
           - path: /
             pathType: Prefix
             backend:
