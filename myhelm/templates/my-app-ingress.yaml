@@ -100,7 +100,7 @@ spec:
     - recipe.sigmoid.io
     secretName: my-app-tls 
   rules:
-  - host: recipe.sigmoid.io  # Apply rules to the correct domain
+  - host: recipe.sigmoid.io  
     http:
       paths:
       - path: /
