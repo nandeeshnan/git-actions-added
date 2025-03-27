@@ -274,6 +274,8 @@ on:
   push:
     branches:
       - main  
+      - dev
+      - feature
 
 jobs:
   deploy:
@@ -336,6 +338,7 @@ jobs:
           cd terraform
           terraform init
           terraform apply -auto-approve
+
 
 
       - name: Install Helm
