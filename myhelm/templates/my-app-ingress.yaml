@@ -29,28 +29,55 @@
 
   
 
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: my-app-ingress
+
+#   annotations:
+#     # nginx.ingress.kubernetes.io/rewrite-target: /
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+#     nginx.ingress.kubernetes.io/enable-cors: "true"
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true" 
+#     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+# spec:
+#   ingressClassName: nginx 
+#   rules:
+#     - host: ""
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: frontend
+#                 port:
+#                   number: 80
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: my-app-ingress
-
   annotations:
-    # nginx.ingress.kubernetes.io/rewrite-target: /
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true" 
+    cert-manager.io/cluster-issuer: letsencrypt-prod  # Automatic TLS certs
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"   # Force HTTPS
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-cors: "true"    # CORS support
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"  # Adjust payload size
 spec:
-  ingressClassName: nginx 
+  ingressClassName: nginx
+  tls: 
+  - hosts:
+    - recipe.sigmoid.io
+    secretName: my-app-tls 
   rules:
-    - host: ""
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend
-                port:
-                  number: 80
-
+  - host: recipe.sigmoid.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port:
+              number: 80
