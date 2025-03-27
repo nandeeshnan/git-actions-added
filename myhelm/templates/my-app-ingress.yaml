@@ -34,24 +34,9 @@ kind: Ingress
 metadata:
   name: my-app-ingress
   annotations:
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
-  secretTemplate:
-    annotations:
-      cert-manager.io/issue-temporary-certificate: "false"  # Ensures full chain
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  secretName: recipe.sigmoid.io-tls
-  dnsNames:
-    - recipe.sigmoid.io
-  tls:
-  - hosts:
-    - recipe.sigmoid.io
-    secretName: recipe.sigmoid.io-tls
   ingressClassName: nginx 
   rules:
     - host: ""
