@@ -39,6 +39,15 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
+  secretTemplate:
+    annotations:
+      cert-manager.io/issue-temporary-certificate: "false"  # Ensures full chain
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  secretName: recipe.sigmoid.io-tls
+  dnsNames:
+    - recipe.sigmoid.io
   tls:
   - hosts:
     - recipe.sigmoid.io
